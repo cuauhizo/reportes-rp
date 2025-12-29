@@ -4,9 +4,24 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const loading = ref(false)
-const activeTab = ref('news') // Controla qué pestaña se ve: 'news' o 'strategy'
+const activeTab = ref('list')
+const allNews = ref([])
+const editingId = ref(null) // ID de la noticia que se está editando
 
-// --- LÓGICA DE NOTICIAS ---
+// --- 1. LÓGICA DE LISTADO ---
+const fetchAllNews = async () => {
+  try {
+    const res = await fetch('http://localhost:3000/api/news')
+    allNews.value = await res.json()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const formatCurrency = (val) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)
+
+// --- 2. LÓGICA DE NOTICIA (CREAR / EDITAR) ---
 const newsForm = ref({
   publication_date: new Date().toISOString().split('T')[0],
   media_name: '',
@@ -20,33 +35,69 @@ const newsForm = ref({
   key_message: 'Inversión',
 })
 
+const editItem = (item) => {
+  editingId.value = item.id
+  // Copiamos los datos y formateamos la fecha para el input type="date"
+  newsForm.value = { ...item, publication_date: item.publication_date.split('T')[0] }
+  activeTab.value = 'news' // Cambiamos a la pestaña de edición
+}
+
+const cancelEdit = () => {
+  editingId.value = null
+  newsForm.value = {
+    publication_date: new Date().toISOString().split('T')[0],
+    media_name: '',
+    reporter: '',
+    title: '',
+    reach: 0,
+    ave_value: 0,
+    tier: 'Tier 1',
+    sentiment: 'Positivo',
+    media_type: 'Digital',
+    key_message: 'Inversión',
+  }
+  activeTab.value = 'list'
+}
+
 const submitNews = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:3000/api/news', {
-      method: 'POST',
+    const isEditing = editingId.value !== null
+    const url = isEditing
+      ? `http://localhost:3000/api/news/${editingId.value}`
+      : 'http://localhost:3000/api/news'
+
+    const method = isEditing ? 'PUT' : 'POST'
+
+    const res = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newsForm.value),
     })
 
     if (res.ok) {
-      alert('¡Noticia guardada con éxito!')
-      // Limpiamos solo los campos clave para facilitar la siguiente carga
-      newsForm.value.title = ''
-      newsForm.value.reach = 0
-      newsForm.value.ave_value = 0
+      alert(isEditing ? '¡Noticia actualizada!' : '¡Noticia creada!')
+      if (isEditing)
+        cancelEdit() // Si editábamos, volvemos a la lista
+      else {
+        // Si creamos, limpiamos y recargamos la lista
+        newsForm.value.title = ''
+        newsForm.value.reach = 0
+        newsForm.value.ave_value = 0
+        fetchAllNews()
+        activeTab.value = 'list'
+      }
     } else {
-      alert('Error al guardar la noticia.')
+      alert('Hubo un error.')
     }
   } catch (e) {
     console.error(e)
-    alert('Error de conexión con el servidor.')
   } finally {
     loading.value = false
   }
 }
 
-// --- LÓGICA DE ESTRATEGIA (FODA) ---
+// --- 3. LÓGICA DE ESTRATEGIA ---
 const strategyForm = ref({
   swot_strengths: '',
   swot_opportunities: '',
@@ -56,13 +107,15 @@ const strategyForm = ref({
   roadmap: '',
 })
 
-// Cargar datos actuales al abrir la página
 const loadStrategy = async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/report/anual')
+    // CORRECCIÓN: Usamos query params (?label=anual) en lugar de la ruta antigua (/anual)
+    const res = await fetch('http://localhost:3000/api/report?label=anual')
+
+    if (!res.ok) throw new Error('Error al conectar con el servidor') // Protección extra
+
     const data = await res.json()
 
-    // Rellenamos el formulario con lo que venga de la base de datos
     strategyForm.value = {
       swot_strengths: data.meta.swot_strengths || '',
       swot_opportunities: data.meta.swot_opportunities || '',
@@ -84,9 +137,7 @@ const submitStrategy = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(strategyForm.value),
     })
-
-    if (res.ok) alert('Estrategia actualizada correctamente')
-    else alert('Error al actualizar.')
+    if (res.ok) alert('Estrategia actualizada')
   } catch (e) {
     console.error(e)
   } finally {
@@ -94,13 +145,15 @@ const submitStrategy = async () => {
   }
 }
 
-// Al montar el componente, cargamos los datos de la estrategia
-onMounted(() => loadStrategy())
+onMounted(() => {
+  fetchAllNews()
+  loadStrategy()
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-100 p-8 font-sans text-zinc-800">
-    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
+  <div class="min-h-screen bg-zinc-100 p-4 md:p-8 font-sans text-zinc-800">
+    <div class="max-w-7xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
       <div class="bg-zinc-900 px-8 py-6 flex justify-between items-center">
         <h2 class="text-xl font-black text-white uppercase tracking-tighter">
           Panel de <span class="text-red-600">Gestión</span>
@@ -109,110 +162,208 @@ onMounted(() => loadStrategy())
           @click="router.push('/')"
           class="text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-widest border border-zinc-700 px-3 py-1 rounded transition-colors"
         >
-          &larr; Volver al Dashboard
+          &larr; Dashboard
         </button>
       </div>
 
-      <div class="flex border-b border-zinc-200">
+      <div class="flex border-b border-zinc-200 overflow-x-auto">
+        <button
+          @click="activeTab = 'list'"
+          :class="[
+            'flex-1 py-4 px-6 text-sm font-bold uppercase tracking-widest whitespace-nowrap transition-colors',
+            activeTab === 'list'
+              ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50',
+          ]"
+        >
+          📋 Base de Datos
+        </button>
         <button
           @click="activeTab = 'news'"
           :class="[
-            'flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-colors',
+            'flex-1 py-4 px-6 text-sm font-bold uppercase tracking-widest whitespace-nowrap transition-colors',
             activeTab === 'news'
               ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
               : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50',
           ]"
         >
-          📝 Nueva Noticia
+          {{ editingId ? '✏️ Editando Noticia' : '➕ Agregar Noticia' }}
         </button>
         <button
           @click="activeTab = 'strategy'"
           :class="[
-            'flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-colors',
+            'flex-1 py-4 px-6 text-sm font-bold uppercase tracking-widest whitespace-nowrap transition-colors',
             activeTab === 'strategy'
               ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
               : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50',
           ]"
         >
-          📊 Estrategia (FODA)
+          📊 Estrategia
         </button>
       </div>
 
+      <div v-if="activeTab === 'list'" class="p-0 animate-fade-in">
+        <div class="overflow-x-auto max-h-[600px]">
+          <table class="w-full text-left text-xs">
+            <thead
+              class="bg-emerald-700 text-white uppercase tracking-wider font-bold sticky top-0 z-10 shadow-sm"
+            >
+              <tr>
+                <th class="p-4 w-10">#</th>
+                <th class="p-4 w-24">Fecha</th>
+                <th class="p-4">Tema</th>
+                <th class="p-4">Medio</th>
+                <th class="p-4">Reportero</th>
+                <th class="p-4 text-right">Alcance</th>
+                <th class="p-4 text-right">Valor (AVE)</th>
+                <th class="p-4 w-64">Título</th>
+                <th class="p-4 text-center">Valoración</th>
+                <th class="p-4 text-center w-20">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100">
+              <tr
+                v-for="item in allNews"
+                :key="item.id"
+                class="hover:bg-zinc-50 transition-colors group"
+              >
+                <td class="p-4 font-bold text-zinc-400">{{ item.id }}</td>
+                <td class="p-4 whitespace-nowrap font-medium">
+                  {{ item.publication_date.split('T')[0] }}
+                </td>
+                <td class="p-4 font-bold text-zinc-600">{{ item.key_message }}</td>
+                <td class="p-4">
+                  <span class="font-bold text-zinc-800 block">{{ item.media_name }}</span>
+                  <span class="text-[9px] text-zinc-400 uppercase tracking-wider">{{
+                    item.media_type
+                  }}</span>
+                </td>
+                <td class="p-4 text-zinc-500">{{ item.reporter || '-' }}</td>
+                <td class="p-4 text-right font-mono text-zinc-600">
+                  {{ item.reach.toLocaleString() }}
+                </td>
+                <td class="p-4 text-right font-mono text-emerald-600 font-bold">
+                  {{ formatCurrency(item.ave_value) }}
+                </td>
+                <td class="p-4 max-w-xs truncate text-zinc-500 italic" :title="item.title">
+                  "{{ item.title }}"
+                </td>
+                <td class="p-4 text-center">
+                  <span
+                    :class="[
+                      'px-2 py-1 rounded-full text-[10px] font-bold uppercase',
+                      item.sentiment === 'Positivo'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : item.sentiment === 'Negativo'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-zinc-100 text-zinc-600',
+                    ]"
+                  >
+                    {{ item.sentiment }}
+                  </span>
+                </td>
+                <td class="p-4 text-center">
+                  <button
+                    @click="editItem(item)"
+                    class="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-lg transition-colors border border-blue-200"
+                    title="Editar"
+                  >
+                    ✏️
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="allNews.length === 0">
+                <td colspan="10" class="p-10 text-center text-zinc-400 italic bg-zinc-50">
+                  No hay noticias registradas. Ve a la pestaña "Agregar Noticia".
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div v-if="activeTab === 'news'" class="p-8 animate-fade-in">
+        <div
+          v-if="editingId"
+          class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 flex justify-between items-center rounded-r-lg"
+        >
+          <div>
+            <p class="text-blue-800 font-bold text-sm">✏️ Modo Edición</p>
+            <p class="text-blue-600 text-xs mt-1">
+              Estás modificando la noticia ID #{{ editingId }}
+            </p>
+          </div>
+          <button
+            @click="cancelEdit"
+            class="text-xs font-bold bg-white text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg border border-blue-200 uppercase transition-colors"
+          >
+            Cancelar y Volver
+          </button>
+        </div>
+
         <form @submit.prevent="submitNews" class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label class="block text-xs font-bold text-zinc-500 uppercase mb-1">Fecha</label>
-              <input
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Fecha</label
+              ><input
                 v-model="newsForm.publication_date"
                 type="date"
+                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-red-600"
                 required
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 focus:ring-2 focus:ring-red-600 outline-none"
               />
             </div>
             <div>
-              <label class="block text-xs font-bold text-zinc-500 uppercase mb-1">Medio</label>
-              <input
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Medio</label
+              ><input
                 v-model="newsForm.media_name"
                 type="text"
+                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-red-600"
                 required
-                placeholder="Ej: Reforma"
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 focus:ring-2 focus:ring-red-600 outline-none"
               />
             </div>
             <div>
-              <label class="block text-xs font-bold text-zinc-500 uppercase mb-1">Reportero</label>
-              <input
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Reportero</label
+              ><input
                 v-model="newsForm.reporter"
                 type="text"
-                placeholder="Nombre"
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 focus:ring-2 focus:ring-red-600 outline-none"
+                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-red-600"
               />
             </div>
           </div>
-
           <div>
-            <label class="block text-xs font-bold text-zinc-500 uppercase mb-1"
-              >Titular de la Nota</label
-            >
-            <input
+            <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Titular</label
+            ><input
               v-model="newsForm.title"
               type="text"
+              class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-3 font-bold text-lg text-zinc-900 outline-none focus:ring-2 focus:ring-red-600"
               required
-              placeholder="Escribe el título completo..."
-              class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-3 font-bold text-lg text-zinc-900 focus:ring-2 focus:ring-red-600 outline-none"
             />
           </div>
 
           <div
-            class="grid grid-cols-2 md:grid-cols-4 gap-6 bg-zinc-50 p-4 rounded-xl border border-zinc-200"
+            class="grid grid-cols-2 md:grid-cols-4 gap-6 bg-zinc-50 p-6 rounded-xl border border-zinc-200"
           >
             <div>
-              <label class="block text-[10px] font-black text-zinc-400 uppercase mb-1"
-                >Alcance</label
-              >
-              <input
+              <label class="text-[10px] font-bold text-zinc-400 uppercase block mb-1">Alcance</label
+              ><input
                 v-model="newsForm.reach"
                 type="number"
                 class="w-full bg-white border border-zinc-200 rounded p-2 text-sm font-bold text-zinc-800"
               />
             </div>
             <div>
-              <label class="block text-[10px] font-black text-zinc-400 uppercase mb-1"
-                >Valor (AVE $)</label
-              >
-              <input
+              <label class="text-[10px] font-bold text-zinc-400 uppercase block mb-1"
+                >Valor (AVE)</label
+              ><input
                 v-model="newsForm.ave_value"
                 type="number"
-                step="0.01"
                 class="w-full bg-white border border-zinc-200 rounded p-2 text-sm font-bold text-zinc-800"
               />
             </div>
             <div>
-              <label class="block text-[10px] font-black text-zinc-400 uppercase mb-1"
+              <label class="text-[10px] font-bold text-zinc-400 uppercase block mb-1"
                 >Sentimiento</label
-              >
-              <select
+              ><select
                 v-model="newsForm.sentiment"
                 class="w-full bg-white border border-zinc-200 rounded p-2 text-sm font-bold text-zinc-800"
               >
@@ -222,8 +373,8 @@ onMounted(() => loadStrategy())
               </select>
             </div>
             <div>
-              <label class="block text-[10px] font-black text-zinc-400 uppercase mb-1">Tier</label>
-              <select
+              <label class="text-[10px] font-bold text-zinc-400 uppercase block mb-1">Tier</label
+              ><select
                 v-model="newsForm.tier"
                 class="w-full bg-white border border-zinc-200 rounded p-2 text-sm font-bold text-zinc-800"
               >
@@ -236,10 +387,8 @@ onMounted(() => loadStrategy())
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-xs font-bold text-zinc-500 uppercase mb-1"
-                >Tipo de Medio</label
-              >
-              <select
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Tipo</label
+              ><select
                 v-model="newsForm.media_type"
                 class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800"
               >
@@ -249,26 +398,37 @@ onMounted(() => loadStrategy())
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-zinc-500 uppercase mb-1"
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1"
                 >Mensaje Clave</label
-              >
-              <input
+              ><input
                 v-model="newsForm.key_message"
                 type="text"
-                placeholder="Ej: Sostenibilidad"
                 class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800"
               />
             </div>
           </div>
 
-          <div class="pt-4 border-t border-zinc-100">
+          <div class="pt-6 border-t border-zinc-100 flex gap-4">
+            <button
+              v-if="editingId"
+              type="button"
+              @click="cancelEdit"
+              class="flex-1 bg-white border-2 border-zinc-200 text-zinc-600 font-bold py-3 rounded-xl hover:bg-zinc-50 hover:text-zinc-800 transition-colors uppercase tracking-widest text-xs"
+            >
+              Cancelar
+            </button>
             <button
               type="submit"
               :disabled="loading"
-              class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-sm flex justify-center items-center gap-2"
+              class="flex-[2] bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all uppercase tracking-widest text-xs flex justify-center items-center gap-2"
             >
-              <span v-if="loading">Guardando...</span>
-              <span v-else>Guardar Noticia</span>
+              <span>{{
+                loading
+                  ? 'Guardando...'
+                  : editingId
+                    ? 'Actualizar Noticia'
+                    : 'Guardar Nueva Noticia'
+              }}</span>
             </button>
           </div>
         </form>
@@ -281,44 +441,40 @@ onMounted(() => loadStrategy())
           >
             Matriz FODA
           </h3>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-              <label class="text-xs font-bold text-emerald-600 uppercase block mb-2"
+              <label class="text-xs font-bold text-emerald-600 uppercase block mb-1"
                 >Fortalezas</label
-              >
-              <textarea
+              ><textarea
                 v-model="strategyForm.swot_strengths"
                 rows="3"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
               ></textarea>
             </div>
             <div>
-              <label class="text-xs font-bold text-blue-600 uppercase block mb-2"
+              <label class="text-xs font-bold text-blue-600 uppercase block mb-1"
                 >Oportunidades</label
-              >
-              <textarea
+              ><textarea
                 v-model="strategyForm.swot_opportunities"
                 rows="3"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               ></textarea>
             </div>
             <div>
-              <label class="text-xs font-bold text-amber-600 uppercase block mb-2"
+              <label class="text-xs font-bold text-amber-600 uppercase block mb-1"
                 >Debilidades</label
-              >
-              <textarea
+              ><textarea
                 v-model="strategyForm.swot_weaknesses"
                 rows="3"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none"
               ></textarea>
             </div>
             <div>
-              <label class="text-xs font-bold text-red-600 uppercase block mb-2">Amenazas</label>
-              <textarea
+              <label class="text-xs font-bold text-red-600 uppercase block mb-1">Amenazas</label
+              ><textarea
                 v-model="strategyForm.swot_threats"
                 rows="3"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-red-500 outline-none resize-none"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
               ></textarea>
             </div>
           </div>
@@ -326,42 +482,35 @@ onMounted(() => loadStrategy())
           <h3
             class="font-black text-lg mb-4 border-l-4 border-zinc-800 pl-3 uppercase tracking-tighter"
           >
-            Contexto y Pasos
+            Contexto
           </h3>
-
           <div class="space-y-6">
             <div>
-              <label class="text-xs font-bold text-zinc-500 uppercase block mb-2"
-                >Hito Principal del Periodo</label
-              >
-              <textarea
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1"
+                >Hito Principal</label
+              ><textarea
                 v-model="strategyForm.milestones"
                 rows="2"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-zinc-500 outline-none resize-none"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm outline-none focus:ring-2 focus:ring-zinc-400"
               ></textarea>
             </div>
             <div>
-              <label class="text-xs font-bold text-zinc-500 uppercase block mb-2"
-                >Próximos Pasos (Escribe uno por línea)</label
-              >
-              <textarea
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1"
+                >Próximos Pasos</label
+              ><textarea
                 v-model="strategyForm.roadmap"
-                rows="5"
-                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm text-zinc-700 focus:ring-2 focus:ring-zinc-500 outline-none resize-none"
-                placeholder="● Paso 1&#10;● Paso 2..."
+                rows="4"
+                class="w-full bg-zinc-50 border border-zinc-200 p-3 rounded-lg text-sm outline-none focus:ring-2 focus:ring-zinc-400"
               ></textarea>
             </div>
           </div>
 
-          <div class="mt-8 pt-6 border-t border-zinc-100">
-            <button
-              type="submit"
-              :disabled="loading"
-              class="w-full bg-zinc-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-lg transition-all uppercase tracking-widest text-sm"
-            >
-              {{ loading ? 'Guardando...' : 'Actualizar Estrategia' }}
-            </button>
-          </div>
+          <button
+            type="submit"
+            class="mt-8 w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-black shadow-xl transition-transform active:scale-[0.99] uppercase tracking-widest text-xs"
+          >
+            Actualizar Estrategia
+          </button>
         </form>
       </div>
     </div>
@@ -369,7 +518,6 @@ onMounted(() => loadStrategy())
 </template>
 
 <style scoped>
-/* Animación suave al cambiar de pestaña */
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }

@@ -11,7 +11,7 @@ const activeTab = ref('anual') // 'mensual', 'trimestral', 'anual', 'custom'
 const setPeriod = (period) => {
   activeTab.value = period
 
-  const today = new Date('2025-12-31') // Simulamos estar en fin de año 2026
+  const today = new Date('2025-12-31') // Simulamos estar en fin de año 2025
   let start = ''
   let end = '2025-12-31'
 

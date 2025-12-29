@@ -111,4 +111,43 @@ app.put('/api/report/1', async (req, res) => {
   }
 })
 
+// 5. Endpoint para LISTAR TODAS las noticias (Para la tabla de Admin)
+app.get('/api/news', async (req, res) => {
+  try {
+    const [news] = await pool.query('SELECT * FROM news_items ORDER BY publication_date DESC')
+    res.json(news)
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error al obtener noticias')
+  }
+})
+
+// 6. Endpoint para EDITAR una noticia existente (PUT)
+app.put('/api/news/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
+
+    const query = `
+            UPDATE news_items 
+            SET publication_date=?, media_name=?, reporter=?, title=?, 
+                reach=?, ave_value=?, tier=?, sentiment=?, media_type=?, key_message=?
+            WHERE id = ?
+        `
+
+    const values = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, id]
+
+    const [result] = await pool.query(query, values)
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Noticia no encontrada' })
+    }
+
+    res.json({ message: 'Noticia actualizada correctamente' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).send('Error al actualizar')
+  }
+})
+
 app.listen(3000, () => console.log('Servidor corriendo en puerto 3000'))

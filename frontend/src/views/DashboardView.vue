@@ -7,6 +7,7 @@ import NewsTimeline from '../components/NewsTimeline.vue'
 import FodaSection from '../components/FodaSection.vue'
 import ContextSection from '../components/ContextSection.vue'
 import NavBar from '../components/NavBar.vue'
+import DistributionCharts from '../components/DistributionCharts.vue'
 
 const reportData = ref(null)
 const loading = ref(true)
@@ -68,14 +69,17 @@ const fetchReportData = async (
 const formattedReach = computed(() =>
   !reportData.value ? '0' : (reportData.value.reach_raw / 1000000).toFixed(1) + 'M',
 )
+
 const formattedAve = computed(() =>
   !reportData.value ? '$0' : '$' + (reportData.value.ave_raw / 1000000).toFixed(1) + 'M',
 )
+
 const tier1Percentage = computed(() =>
   !reportData.value || reportData.value.total_notes === 0
     ? 0
     : Math.round((reportData.value.tier1_count / reportData.value.total_notes) * 100),
 )
+
 const trendData = computed(() => {
   if (!reportData.value || !reportData.value.news) return { labels: [], values: [] }
   const grouped = {}
@@ -86,6 +90,18 @@ const trendData = computed(() => {
   const sortedKeys = Object.keys(grouped).sort()
   return { labels: sortedKeys, values: sortedKeys.map((key) => grouped[key]) }
 })
+
+const topNotes = computed(() => {
+  if (!reportData.value || !reportData.value.news) return []
+  // Copiamos el array, ordenamos por alcance descendente y tomamos 3
+  return [...reportData.value.news].sort((a, b) => b.reach - a.reach).slice(0, 3)
+})
+
+const formatNumber = (num) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
+  return num
+}
 
 onMounted(() => fetchReportData())
 </script>
@@ -150,6 +166,40 @@ onMounted(() => fetchReportData())
         :tier1-percentage="tier1Percentage"
       />
 
+      <section v-if="topNotes.length > 0">
+        <div class="mb-6">
+          <h2
+            class="text-2xl font-bold border-l-4 border-red-600 pl-4 uppercase tracking-tighter text-white bg-black inline-block px-4 py-1"
+          >
+            Notas Destacadas
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div
+            v-for="note in topNotes"
+            :key="note.id"
+            class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600 hover:-translate-y-1 transition-transform"
+          >
+            <p class="font-black text-[10px] text-zinc-400 mb-1 tracking-widest uppercase">
+              {{ note.media_name }}
+            </p>
+            <h4 class="text-sm font-bold text-zinc-900 mb-4 leading-tight line-clamp-2 h-10">
+              "{{ note.title }}"
+            </h4>
+            <div class="flex justify-between items-end border-t pt-3">
+              <div>
+                <p class="text-2xl font-black text-red-600">{{ formatNumber(note.reach) }}</p>
+                <p class="text-[9px] uppercase font-bold text-zinc-400">Alcance</p>
+              </div>
+              <span class="text-[10px] font-bold bg-zinc-100 px-2 py-1 rounded text-zinc-600">{{
+                note.tier
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-zinc-200">
           <h3 class="text-lg font-bold mb-6 text-zinc-900 border-l-4 border-black pl-3">
@@ -168,6 +218,8 @@ onMounted(() => fetchReportData())
           />
         </div>
       </section>
+
+      <DistributionCharts :news="reportData.news" />
 
       <section>
         <div class="text-center mb-10">
