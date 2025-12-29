@@ -1,5 +1,9 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { onMounted } from 'vue'
+import { useReportStore } from '../stores/reportStore' // <--- Importamos la store
+import { storeToRefs } from 'pinia' // Para mantener reactividad al desestructurar
+
+// Componentes
 import KpiCards from '../components/KpiCards.vue'
 import SentimentChart from '../components/SentimentChart.vue'
 import TrendChart from '../components/TrendChart.vue'
@@ -9,120 +13,35 @@ import ContextSection from '../components/ContextSection.vue'
 import NavBar from '../components/NavBar.vue'
 import DistributionCharts from '../components/DistributionCharts.vue'
 
-const reportData = ref(null)
-const loading = ref(true)
+// Usar la Store
+const store = useReportStore()
 
-// Modificamos para recibir un objeto de filtros (con valores por defecto)
-const fetchReportData = async (
-  filters = { start: '2025-01-01', end: '2025-12-31', label: 'Anual' },
-) => {
-  try {
-    loading.value = true
+// Extraemos las propiedades reactivas (State y Getters)
+// storeToRefs es importante para no perder la reactividad
+const { reportData, loading, formattedReach, formattedAve, tier1Percentage, trendData, topNotes } =
+  storeToRefs(store)
 
-    // Construimos la URL con query params
-    const params = new URLSearchParams({
-      start: filters.start,
-      end: filters.end,
-      type: filters.label,
-    })
+// La acción (método) se extrae directamente
+const { fetchReport } = store
 
-    const response = await fetch(`http://localhost:3000/api/report?${params}`)
-
-    if (!response.ok) throw new Error('Error de conexión')
-    const data = await response.json()
-
-    reportData.value = {
-      period:
-        filters.label === 'Anual'
-          ? 'Reporte Anual 2025'
-          : `Periodo: ${filters.start} a ${filters.end}`,
-      impacts: data.kpis.total_impacts,
-      reach_raw: data.kpis.total_reach,
-      ave_raw: data.kpis.total_ave,
-      tier1_count: data.kpis.tier1_count,
-      total_notes: data.kpis.total_impacts,
-      sentiment: {
-        positive: data.sentimentCounts.positive,
-        neutral: data.sentimentCounts.neutral,
-        negative: data.sentimentCounts.negative,
-      },
-      news: data.news,
-      // Mapeamos los datos cualitativos
-      foda: {
-        strengths: data.meta.swot_strengths || 'Sin definir',
-        opportunities: data.meta.swot_opportunities || 'Sin definir',
-        weaknesses: data.meta.swot_weaknesses || 'Sin definir',
-        threats: data.meta.swot_threats || 'Sin definir',
-      },
-      context: {
-        milestones: data.meta.milestones || 'Sin hitos registrados.',
-        roadmap: data.meta.roadmap || '',
-      },
-    }
-  } catch (error) {
-    console.error(error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const formattedReach = computed(() =>
-  !reportData.value ? '0' : (reportData.value.reach_raw / 1000000).toFixed(1) + 'M',
-)
-
-const formattedAve = computed(() =>
-  !reportData.value ? '$0' : '$' + (reportData.value.ave_raw / 1000000).toFixed(1) + 'M',
-)
-
-const tier1Percentage = computed(() =>
-  !reportData.value || reportData.value.total_notes === 0
-    ? 0
-    : Math.round((reportData.value.tier1_count / reportData.value.total_notes) * 100),
-)
-
-const trendData = computed(() => {
-  if (!reportData.value || !reportData.value.news) return { labels: [], values: [] }
-  const grouped = {}
-  reportData.value.news.forEach((item) => {
-    const monthKey = item.publication_date.substring(0, 7)
-    grouped[monthKey] = (grouped[monthKey] || 0) + 1
-  })
-  const sortedKeys = Object.keys(grouped).sort()
-  return { labels: sortedKeys, values: sortedKeys.map((key) => grouped[key]) }
-})
-
-const topNotes = computed(() => {
-  if (!reportData.value || !reportData.value.news) return []
-  // Copiamos el array, ordenamos por alcance descendente y tomamos 3
-  return [...reportData.value.news].sort((a, b) => b.reach - a.reach).slice(0, 3)
-})
-
+// Helper simple para la vista (Top Notas)
 const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
   return num
 }
 
-onMounted(() => fetchReportData())
+// Cargar datos al iniciar
+onMounted(() => {
+  // Solo cargamos si no hay datos previos (opcional, para caché)
+  if (!reportData.value) {
+    fetchReport()
+  }
+})
 </script>
 
 <template>
   <div class="min-h-screen bg-[#f4f4f5] pb-20 font-sans text-zinc-800">
-    <!-- <header
-      class="bg-gradient-to-r from-black via-zinc-900 to-red-900 text-white py-12 px-6 shadow-2xl mb-8 relative overflow-hidden"
-    >
-      <div
-        class="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none"
-      ></div>
-      <div class="max-w-7xl mx-auto relative z-10">
-        <p class="text-red-500 font-bold tracking-widest uppercase text-xs mb-2">
-          Análisis Estratégico
-        </p>
-        <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Harbour Energy</h1>
-        <p v-if="reportData" class="text-zinc-300 text-lg opacity-90">{{ reportData.period }}</p>
-      </div>
-    </header> -->
-
     <header
       class="bg-gradient-to-r from-black via-zinc-900 to-red-900 text-white py-12 px-6 shadow-2xl mb-8 relative overflow-hidden"
     >
@@ -151,7 +70,7 @@ onMounted(() => fetchReportData())
       </div>
     </header>
     <div class="max-w-7xl mx-auto px-4 -mt-6 mb-8 relative z-20">
-      <NavBar @filter="fetchReportData" />
+      <NavBar @filter="fetchReport" />
     </div>
 
     <div v-if="loading" class="text-center py-20">

@@ -1,153 +1,23 @@
 const express = require('express')
-const mysql = require('mysql2/promise')
 const cors = require('cors')
+require('dotenv').config() // Cargar variables de entorno
+
 const app = express()
 
+// Middlewares
 app.use(cors())
 app.use(express.json())
 
-// 1. Conexión a Base de Datos
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root', // Tu usuario de MySQL
-  password: '', // Tu contraseña de MySQL
-  database: 'tolko_rp_reports',
+// Importar Rutas
+const reportRoutes = require('./routes/reportRoutes')
+const newsRoutes = require('./routes/newsRoutes')
+
+// Usar Rutas
+app.use('/api/report', reportRoutes)
+app.use('/api/news', newsRoutes)
+
+// Servidor
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
 })
-
-app.get('/api/report', async (req, res) => {
-  try {
-    const { type, start, end } = req.query
-
-    let reportQuery = 'SELECT * FROM reports WHERE id = 1' // Por defecto usamos el reporte base (ID 1)
-    let newsQuery = 'SELECT * FROM news_items WHERE report_id = 1'
-    let newsParams = []
-
-    if (start && end) {
-      newsQuery += ' AND publication_date BETWEEN ? AND ?'
-      newsParams = [start, end]
-    }
-
-    newsQuery += ' ORDER BY publication_date DESC'
-
-    const [reports] = await pool.query(reportQuery)
-    const report = reports[0]
-    const [news] = await pool.query(newsQuery, newsParams)
-    const kpis = {
-      total_impacts: news.length,
-      total_reach: news.reduce((sum, item) => sum + item.reach, 0),
-      total_ave: news.reduce((sum, item) => sum + Number(item.ave_value), 0),
-      tier1_count: news.filter(n => n.tier === 'Tier 1').length,
-    }
-
-    const sentimentCounts = {
-      positive: news.filter(n => n.sentiment === 'Positivo').length,
-      neutral: news.filter(n => n.sentiment === 'Neutro').length,
-      negative: news.filter(n => n.sentiment === 'Negativo').length,
-    }
-
-    res.json({
-      meta: { ...report, period_label: type || 'Personalizado' }, // Devolvemos el tipo solicitado
-      kpis,
-      sentimentCounts,
-      news,
-    })
-  } catch (error) {
-    console.error(error)
-    res.status(500).send('Error en servidor')
-  }
-})
-
-// 3. Endpoint para CREAR una nueva noticia (POST)
-app.post('/api/news', async (req, res) => {
-  try {
-    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
-
-    // Validación básica
-    if (!media_name || !title || !publication_date) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios' })
-    }
-
-    const query = `
-            INSERT INTO news_items 
-            (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message) 
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `
-
-    // Asumimos report_id = 1 por defecto
-    const values = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message]
-
-    const [result] = await pool.query(query, values)
-
-    res.json({ message: 'Noticia guardada con éxito', id: result.insertId })
-  } catch (error) {
-    console.error(error)
-    res.status(500).send('Error al guardar la noticia')
-  }
-})
-
-// 4. Endpoint para ACTUALIZAR el Reporte (FODA, Hitos, etc.)
-app.put('/api/report/1', async (req, res) => {
-  try {
-    const { swot_strengths, swot_opportunities, swot_weaknesses, swot_threats, milestones, roadmap } = req.body
-
-    const query = `
-            UPDATE reports 
-            SET 
-                swot_strengths = ?, 
-                swot_opportunities = ?, 
-                swot_weaknesses = ?, 
-                swot_threats = ?, 
-                milestones = ?, 
-                roadmap = ?
-            WHERE id = 1
-        `
-
-    await pool.query(query, [swot_strengths, swot_opportunities, swot_weaknesses, swot_threats, milestones, roadmap])
-
-    res.json({ message: 'Reporte actualizado correctamente' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).send('Error al actualizar reporte')
-  }
-})
-
-// 5. Endpoint para LISTAR TODAS las noticias (Para la tabla de Admin)
-app.get('/api/news', async (req, res) => {
-  try {
-    const [news] = await pool.query('SELECT * FROM news_items ORDER BY publication_date DESC')
-    res.json(news)
-  } catch (error) {
-    console.error(error)
-    res.status(500).send('Error al obtener noticias')
-  }
-})
-
-// 6. Endpoint para EDITAR una noticia existente (PUT)
-app.put('/api/news/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
-
-    const query = `
-            UPDATE news_items 
-            SET publication_date=?, media_name=?, reporter=?, title=?, 
-                reach=?, ave_value=?, tier=?, sentiment=?, media_type=?, key_message=?
-            WHERE id = ?
-        `
-
-    const values = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, id]
-
-    const [result] = await pool.query(query, values)
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Noticia no encontrada' })
-    }
-
-    res.json({ message: 'Noticia actualizada correctamente' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).send('Error al actualizar')
-  }
-})
-
-app.listen(3000, () => console.log('Servidor corriendo en puerto 3000'))

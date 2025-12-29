@@ -7,11 +7,14 @@ const loading = ref(false)
 const activeTab = ref('list')
 const allNews = ref([])
 const editingId = ref(null) // ID de la noticia que se está editando
+// `${apiUrl}
+const apiUrl = import.meta.env.VITE_API_URL
+// const response = await fetch(`${apiUrl}/report/anual`)
 
 // --- 1. LÓGICA DE LISTADO ---
 const fetchAllNews = async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/news')
+    const res = await fetch(`${apiUrl}/news`)
     allNews.value = await res.json()
   } catch (e) {
     console.error(e)
@@ -63,9 +66,7 @@ const submitNews = async () => {
   loading.value = true
   try {
     const isEditing = editingId.value !== null
-    const url = isEditing
-      ? `http://localhost:3000/api/news/${editingId.value}`
-      : 'http://localhost:3000/api/news'
+    const url = isEditing ? `${apiUrl}/news/${editingId.value}` : `${apiUrl}/news`
 
     const method = isEditing ? 'PUT' : 'POST'
 
@@ -110,7 +111,7 @@ const strategyForm = ref({
 const loadStrategy = async () => {
   try {
     // CORRECCIÓN: Usamos query params (?label=anual) en lugar de la ruta antigua (/anual)
-    const res = await fetch('http://localhost:3000/api/report?label=anual')
+    const res = await fetch(`${apiUrl}/report?label=anual`)
 
     if (!res.ok) throw new Error('Error al conectar con el servidor') // Protección extra
 
@@ -132,7 +133,7 @@ const loadStrategy = async () => {
 const submitStrategy = async () => {
   loading.value = true
   try {
-    const res = await fetch('http://localhost:3000/api/report/1', {
+    const res = await fetch(`${apiUrl}/report/1`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(strategyForm.value),
