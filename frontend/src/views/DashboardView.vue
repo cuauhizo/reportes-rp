@@ -98,7 +98,7 @@ onMounted(() => {
           <div
             v-for="note in topNotes"
             :key="note.id"
-            class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600 hover:-translate-y-1 transition-transform"
+            class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-red-600 hover:-translate-y-1 transition-transform"
           >
             <p class="font-black text-[10px] text-zinc-400 mb-1 tracking-widest uppercase">
               {{ note.media_name }}
@@ -151,7 +151,9 @@ onMounted(() => {
         <NewsTimeline :items="reportData.news" />
       </section>
 
-      <section class="bg-black rounded-[2.5rem] p-8 md:p-16 relative overflow-hidden shadow-2xl">
+      <section
+        class="bg-black rounded-[2.5rem] p-8 md:p-16 relative border-t-8 border-red-600 overflow-hidden shadow-2xl"
+      >
         <div
           class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-red-900/20 to-transparent pointer-events-none"
         ></div>

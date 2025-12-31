@@ -7,9 +7,11 @@ const loading = ref(false)
 const activeTab = ref('list')
 const allNews = ref([])
 const editingId = ref(null) // ID de la noticia que se está editando
-// `${apiUrl}
 const apiUrl = import.meta.env.VITE_API_URL
-// const response = await fetch(`${apiUrl}/report/anual`)
+// Estado para errores de validación (campo por campo)
+const fieldErrors = ref({})
+// Estado para mensaje global (Toast)
+const notification = ref({ show: false, message: '', type: 'success' }) // type: 'success' | 'error'
 
 // --- 1. LÓGICA DE LISTADO ---
 const fetchAllNews = async () => {
@@ -62,42 +64,6 @@ const cancelEdit = () => {
   activeTab.value = 'list'
 }
 
-const submitNews = async () => {
-  loading.value = true
-  try {
-    const isEditing = editingId.value !== null
-    const url = isEditing ? `${apiUrl}/news/${editingId.value}` : `${apiUrl}/news`
-
-    const method = isEditing ? 'PUT' : 'POST'
-
-    const res = await fetch(url, {
-      method: method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newsForm.value),
-    })
-
-    if (res.ok) {
-      alert(isEditing ? '¡Noticia actualizada!' : '¡Noticia creada!')
-      if (isEditing)
-        cancelEdit() // Si editábamos, volvemos a la lista
-      else {
-        // Si creamos, limpiamos y recargamos la lista
-        newsForm.value.title = ''
-        newsForm.value.reach = 0
-        newsForm.value.ave_value = 0
-        fetchAllNews()
-        activeTab.value = 'list'
-      }
-    } else {
-      alert('Hubo un error.')
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
 // --- 3. LÓGICA DE ESTRATEGIA ---
 const strategyForm = ref({
   swot_strengths: '',
@@ -141,6 +107,87 @@ const submitStrategy = async () => {
     if (res.ok) alert('Estrategia actualizada')
   } catch (e) {
     console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Función auxiliar para validar antes de enviar
+const validateForm = () => {
+  fieldErrors.value = {} // Limpiar errores previos
+  let isValid = true
+
+  if (!newsForm.value.media_name) {
+    fieldErrors.value.media_name = 'El medio es requerido'
+    isValid = false
+  }
+  if (!newsForm.value.title) {
+    fieldErrors.value.title = 'El titular es requerido'
+    isValid = false
+  }
+  if (!newsForm.value.key_message) {
+    fieldErrors.value.key_message = 'El mensaje clave es requerido'
+    isValid = false
+  }
+  if (!newsForm.value.publication_date) {
+    fieldErrors.value.publication_date = 'La fecha es requerida'
+    isValid = false
+  }
+
+  return isValid
+}
+
+// Función para mostrar notificación temporal
+const showNotification = (msg, type = 'success') => {
+  notification.value = { show: true, message: msg, type }
+  setTimeout(() => (notification.value.show = false), 3000) // Se oculta a los 3 seg
+}
+
+// Modificamos el submitNews
+const submitNews = async () => {
+  // 1. Validar Frontend
+  if (!validateForm()) {
+    showNotification('Por favor corrige los errores marcados', 'error')
+    return
+  }
+
+  loading.value = true
+  try {
+    const isEditing = editingId.value !== null
+    const url = isEditing
+      ? `${import.meta.env.VITE_API_URL}/news/${editingId.value}`
+      : `${import.meta.env.VITE_API_URL}/news`
+
+    const method = isEditing ? 'PUT' : 'POST'
+
+    const res = await fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newsForm.value),
+    })
+
+    const data = await res.json()
+
+    if (res.ok) {
+      showNotification(isEditing ? 'Noticia actualizada correctamente' : 'Noticia creada con éxito')
+      if (isEditing) cancelEdit()
+      else {
+        newsForm.value.title = ''
+        // ... limpiar otros campos
+        fetchAllNews()
+        activeTab.value = 'list'
+      }
+    } else {
+      // Si el backend devuelve errores de validación (400)
+      if (data.details) {
+        showNotification(data.details.join(', '), 'error')
+      } else {
+        showNotification(data.message || 'Hubo un error desconocido', 'error')
+      }
+    }
+  } catch (e) {
+    console.error(e)
+    showNotification('Error de conexión con el servidor', 'error')
   } finally {
     loading.value = false
   }
@@ -305,22 +352,39 @@ onMounted(() => {
         <form @submit.prevent="submitNews" class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Fecha</label
-              ><input
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Fecha</label>
+              <input
                 v-model="newsForm.publication_date"
-                type="date"
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-red-600"
-                required
+                type="text"
+                :class="[
+                  'w-full bg-zinc-50 border rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 transition-all',
+                  fieldErrors.publication_date
+                    ? 'border-red-500 focus:ring-red-200 bg-red-50' /* Estilo de Error */
+                    : 'border-zinc-200 focus:ring-red-600' /* Estilo Normal */,
+                ]"
               />
+              <p
+                v-if="fieldErrors.publication_date"
+                class="text-red-500 text-[10px] font-bold mt-1"
+              >
+                {{ fieldErrors.publication_date }}
+              </p>
             </div>
             <div>
-              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Medio</label
-              ><input
+              <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Medio</label>
+              <input
                 v-model="newsForm.media_name"
                 type="text"
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-red-600"
-                required
+                :class="[
+                  'w-full bg-zinc-50 border rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 transition-all',
+                  fieldErrors.media_name
+                    ? 'border-red-500 focus:ring-red-200 bg-red-50' /* Estilo de Error */
+                    : 'border-zinc-200 focus:ring-red-600' /* Estilo Normal */,
+                ]"
               />
+              <p v-if="fieldErrors.media_name" class="text-red-500 text-[10px] font-bold mt-1">
+                {{ fieldErrors.media_name }}
+              </p>
             </div>
             <div>
               <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Reportero</label
@@ -332,13 +396,20 @@ onMounted(() => {
             </div>
           </div>
           <div>
-            <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Titular</label
-            ><input
+            <label class="text-xs font-bold text-zinc-500 uppercase block mb-1">Titular</label>
+            <input
               v-model="newsForm.title"
               type="text"
-              class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-3 font-bold text-lg text-zinc-900 outline-none focus:ring-2 focus:ring-red-600"
-              required
+              :class="[
+                'w-full bg-zinc-50 border rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 transition-all',
+                fieldErrors.title
+                  ? 'border-red-500 focus:ring-red-200 bg-red-50' /* Estilo de Error */
+                  : 'border-zinc-200 focus:ring-red-600' /* Estilo Normal */,
+              ]"
             />
+            <p v-if="fieldErrors.title" class="text-red-500 text-[10px] font-bold mt-1">
+              {{ fieldErrors.title }}
+            </p>
           </div>
 
           <div
@@ -401,11 +472,20 @@ onMounted(() => {
             <div>
               <label class="text-xs font-bold text-zinc-500 uppercase block mb-1"
                 >Mensaje Clave</label
-              ><input
+              >
+              <input
                 v-model="newsForm.key_message"
                 type="text"
-                class="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 font-bold text-zinc-800"
+                :class="[
+                  'w-full bg-zinc-50 border rounded-lg p-2 font-bold text-zinc-800 outline-none focus:ring-2 transition-all',
+                  fieldErrors.key_message
+                    ? 'border-red-500 focus:ring-red-200 bg-red-50' /* Estilo de Error */
+                    : 'border-zinc-200 focus:ring-red-600' /* Estilo Normal */,
+                ]"
               />
+              <p v-if="fieldErrors.key_message" class="text-red-500 text-[10px] font-bold mt-1">
+                {{ fieldErrors.key_message }}
+              </p>
             </div>
           </div>
 
@@ -516,9 +596,38 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <div v-if="notification.show" class="fixed top-4 right-4 z-50 animate-bounce-in">
+    <div
+      :class="[
+        'px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 text-white font-bold',
+        notification.type === 'success'
+          ? 'bg-zinc-900 border-emerald-500'
+          : 'bg-red-600 border-red-800',
+      ]"
+    >
+      <span>{{ notification.type === 'success' ? '✅' : '⚠️' }}</span>
+      <p class="text-sm">{{ notification.message }}</p>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+/* Agrega esta animación en tus estilos */
+.animate-bounce-in {
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+@keyframes bounceIn {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }

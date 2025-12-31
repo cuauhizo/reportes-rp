@@ -11,19 +11,49 @@ exports.getAllNews = async (req, res) => {
 }
 
 // Crear una nueva noticia
+// backend/controllers/newsController.js
+
 exports.createNews = async (req, res) => {
   try {
     const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
 
+    // --- 1. VALIDACIONES ---
+    const errors = []
+
+    // Validar campos obligatorios
+    if (!media_name || media_name.trim() === '') errors.push('El nombre del medio es obligatorio.')
+    if (!title || title.trim() === '') errors.push('El titular es obligatorio.')
+    if (!key_message || key_message.trim() === '') errors.push('El mensaje clave es obligatorio.')
+    if (!publication_date) errors.push('La fecha de publicación es obligatoria.')
+
+    // Validar tipos de datos (Números)
+    if (reach && isNaN(reach)) errors.push('El Alcance debe ser un número válido.')
+    if (ave_value && isNaN(ave_value)) errors.push('El Valor (AVE) debe ser un número válido.')
+
+    // Si hay errores, devolvemos 400 (Bad Request) y NO guardamos nada
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: 'Error de validación',
+        details: errors,
+      })
+    }
+
+    // --- 2. LOGICA DE GUARDADO ---
     const query = `
             INSERT INTO news_items 
             (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message) 
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` // Asumimos report_id = 1
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-    const [result] = await pool.query(query, [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message])
-    res.json({ message: 'Noticia guardada', id: result.insertId })
+    // Aseguramos que los números sean números (parse)
+    const safeReach = Number(reach) || 0
+    const safeAve = Number(ave_value) || 0
+
+    const [result] = await pool.query(query, [publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message])
+
+    res.status(201).json({ message: 'Noticia guardada con éxito', id: result.insertId })
   } catch (error) {
-    res.status(500).json({ message: 'Error al guardar noticia', error })
+    console.error('Error SQL:', error) // Log interno para ti
+    res.status(500).json({ message: 'Error interno del servidor al guardar la noticia.' })
   }
 }
 
