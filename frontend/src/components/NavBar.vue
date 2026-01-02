@@ -1,6 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useReportStore } from '../stores/reportStore'
+import { storeToRefs } from 'pinia'
 
+const store = useReportStore()
+const { clients, currentClientId } = storeToRefs(store)
+const { fetchClients, setClient } = store
 const emit = defineEmits(['filter'])
 
 const startDate = ref('')
@@ -30,10 +35,24 @@ const applyCustomDates = () => {
     emit('filter', { start: startDate.value, end: endDate.value, label: 'Personalizado' })
   }
 }
+
+// Cargar clientes al montar el Nav
+onMounted(() => fetchClients())
 </script>
 
 <template>
   <nav class="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
+    <div class="bg-zinc-900 p-1.5 rounded-2xl shadow-md border border-zinc-800">
+      <select
+        :value="currentClientId"
+        @change="setClient($event.target.value)"
+        class="bg-transparent text-white text-sm font-bold border-none outline-none px-2 py-2 cursor-pointer"
+      >
+        <option v-for="c in clients" :key="c.id" :value="c.id" class="text-black">
+          {{ c.name }}
+        </option>
+      </select>
+    </div>
     <div class="bg-white p-1.5 rounded-2xl shadow-md border border-zinc-200 flex gap-1">
       <button
         @click="setPeriod('mensual')"

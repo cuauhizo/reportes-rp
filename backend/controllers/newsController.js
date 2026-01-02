@@ -11,14 +11,21 @@ exports.getAllNews = async (req, res) => {
 }
 
 // Crear una nueva noticia
-// backend/controllers/newsController.js
-
 exports.createNews = async (req, res) => {
   try {
-    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
+    const { clientId, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
 
     // --- 1. VALIDACIONES ---
     const errors = []
+
+    // 1. Buscamos el reporte ID asociado a ese cliente
+    const [reports] = await pool.query('SELECT id FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
+
+    if (reports.length === 0) {
+      return res.status(404).json({ message: 'No se encontró un reporte para este cliente.' })
+    }
+
+    const reportId = reports[0].id
 
     // Validar campos obligatorios
     if (!media_name || media_name.trim() === '') errors.push('El nombre del medio es obligatorio.')
@@ -42,13 +49,13 @@ exports.createNews = async (req, res) => {
     const query = `
             INSERT INTO news_items 
             (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message) 
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
     // Aseguramos que los números sean números (parse)
     const safeReach = Number(reach) || 0
     const safeAve = Number(ave_value) || 0
 
-    const [result] = await pool.query(query, [publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message])
+    const [result] = await pool.query(query, [reportId, publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message])
 
     res.status(201).json({ message: 'Noticia guardada con éxito', id: result.insertId })
   } catch (error) {
@@ -74,5 +81,22 @@ exports.updateNews = async (req, res) => {
     res.json({ message: 'Noticia actualizada' })
   } catch (error) {
     res.status(500).json({ message: 'Error al actualizar', error })
+  }
+}
+
+// ELIMINAR NOTICIA
+exports.deleteNews = async (req, res) => {
+  try {
+    const { id } = req.params
+    const [result] = await pool.query('DELETE FROM news_items WHERE id = ?', [id])
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Noticia no encontrada' })
+    }
+
+    res.json({ message: 'Noticia eliminada correctamente' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Error al eliminar noticia' })
   }
 }

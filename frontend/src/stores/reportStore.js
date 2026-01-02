@@ -7,7 +7,24 @@ export const useReportStore = defineStore('report', () => {
   const loading = ref(false)
   const error = ref(null)
 
+  // NUEVO: Estado para clientes
+  const clients = ref([])
+  const currentClientId = ref(1) // Por defecto Harbour Energy
+
   // --- 2. ACCIONES (Actions) ---
+  // ACCIONES
+
+  // 1. Cargar lista de clientes (para el selector)
+  const fetchClients = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+      const res = await fetch(`${apiUrl}/clients`)
+      clients.value = await res.json()
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const fetchReport = async (
     filters = { start: '2025-01-01', end: '2025-12-31', label: 'Reporte Anual 2025' },
   ) => {
@@ -19,6 +36,7 @@ export const useReportStore = defineStore('report', () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
       const params = new URLSearchParams({
+        clientId: currentClientId.value,
         start: filters.start,
         end: filters.end,
         label: filters.label,
@@ -26,13 +44,23 @@ export const useReportStore = defineStore('report', () => {
 
       const response = await fetch(`${apiUrl}/report?${params}`)
 
+      if (response.status === 404) {
+        throw new Error('Este cliente no tiene datos reportados.')
+      }
       if (!response.ok) throw new Error('Error al conectar con el servidor')
 
       const data = await response.json()
 
+      // ... (El mapeo de datos reportData.value sigue igual) ...
+      // Asegúrate de copiar el mismo bloque de mapeo que ya tenías
+      const tituloReporte =
+        filters.label === 'Anual'
+          ? `Reporte Anual ${filters.start.split('-')[0]}` // Truco para sacar el año
+          : `Periodo: ${filters.start} a ${filters.end}`
+
       // Mapeo de datos (Igual que tenías en la vista)
       reportData.value = {
-        period: data.meta.period_label,
+        period: tituloReporte,
         impacts: data.kpis.total_impacts,
         reach_raw: data.kpis.total_reach,
         ave_raw: data.kpis.total_ave,
@@ -58,9 +86,16 @@ export const useReportStore = defineStore('report', () => {
     } catch (e) {
       console.error(e)
       error.value = e.message
+      reportData.value = null
     } finally {
       loading.value = false
     }
+  }
+
+  // 3. Acción para cambiar cliente
+  const setClient = (id) => {
+    currentClientId.value = id
+    fetchReport() // Recargar datos automáticamente
   }
 
   // --- 3. GETTERS (Computed) ---
@@ -101,8 +136,12 @@ export const useReportStore = defineStore('report', () => {
     reportData,
     loading,
     error,
+    clients,
+    currentClientId,
     // Actions
     fetchReport,
+    fetchClients,
+    setClient,
     // Getters
     formattedReach,
     formattedAve,

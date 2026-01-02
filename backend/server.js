@@ -11,10 +11,12 @@ app.use(express.json())
 // Importar Rutas
 const reportRoutes = require('./routes/reportRoutes')
 const newsRoutes = require('./routes/newsRoutes')
+const clientRoutes = require('./routes/clientRoutes')
 
 // Usar Rutas
 app.use('/api/report', reportRoutes)
 app.use('/api/news', newsRoutes)
+app.use('/api/clients', clientRoutes)
 
 // Servidor
 const PORT = process.env.PORT || 3000

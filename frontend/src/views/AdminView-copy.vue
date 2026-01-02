@@ -4,14 +4,14 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const loading = ref(false)
-const activeTab = ref('list') // list, news, strategy, clients
+const activeTab = ref('list')
 const allNews = ref([])
 const editingId = ref(null)
 
 // Estado de clientes
 const clients = ref([])
 const selectedClientId = ref(1)
-const currentReportId = ref(null)
+const currentReportId = ref(null) // Para saber qué reporte (FODA) estamos editando
 
 const apiUrl = import.meta.env.VITE_API_URL
 
@@ -19,10 +19,7 @@ const apiUrl = import.meta.env.VITE_API_URL
 const fieldErrors = ref({})
 const notification = ref({ show: false, message: '', type: 'success' })
 
-// Formulario nuevo cliente
-const newClientName = ref('')
-
-// --- 1. LÓGICA DE CARGA ---
+// --- 1. LÓGICA DE CARGA DE DATOS ---
 
 const fetchClients = async () => {
   try {
@@ -35,6 +32,7 @@ const fetchClients = async () => {
 
 const fetchAllNews = async () => {
   try {
+    // Obtenemos el reporte del cliente seleccionado para sacar sus noticias
     const res = await fetch(`${apiUrl}/report?clientId=${selectedClientId.value}`)
     if (!res.ok) {
       allNews.value = []
@@ -42,7 +40,11 @@ const fetchAllNews = async () => {
     }
     const data = await res.json()
     allNews.value = data.news || []
-    if (data.meta && data.meta.id) currentReportId.value = data.meta.id
+
+    // Guardamos el ID del reporte actual para usarlo al guardar el FODA
+    if (data.meta && data.meta.id) {
+      currentReportId.value = data.meta.id
+    }
   } catch (e) {
     console.error(e)
     allNews.value = []
@@ -52,34 +54,7 @@ const fetchAllNews = async () => {
 const formatCurrency = (val) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)
 
-// --- 2. LÓGICA DE CLIENTES ---
-const submitClient = async () => {
-  if (!newClientName.value.trim()) return
-  loading.value = true
-  try {
-    const res = await fetch(`${apiUrl}/clients`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newClientName.value }),
-    })
-    if (res.ok) {
-      showNotification('Empresa creada exitosamente')
-      newClientName.value = ''
-      await fetchClients() // Recargar lista
-      // Opcional: Seleccionar el nuevo cliente automáticamente
-      const newClient = clients.value[0] // Como ordenamos DESC, es el primero
-      if (newClient) selectedClientId.value = newClient.id
-    } else {
-      showNotification('Error al crear empresa', 'error')
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
-// --- 3. LÓGICA DE NOTICIA ---
+// --- 2. LÓGICA DE NOTICIA ---
 const newsForm = ref({
   publication_date: new Date().toISOString().split('T')[0],
   media_name: '',
@@ -89,7 +64,7 @@ const newsForm = ref({
   ave_value: 0,
   tier: 'Tier 1',
   sentiment: 'Positivo',
-  media_type: 'Nota',
+  media_type: 'Nota', // Valor por defecto ajustado a "Nota"
   key_message: 'Convención',
 })
 
@@ -116,6 +91,7 @@ const cancelEdit = () => {
   activeTab.value = 'list'
 }
 
+// Validación
 const validateForm = () => {
   fieldErrors.value = {}
   let isValid = true
@@ -154,8 +130,11 @@ const submitNews = async () => {
     const url = isEditing ? `${apiUrl}/news/${editingId.value}` : `${apiUrl}/news`
     const method = isEditing ? 'PUT' : 'POST'
 
-    // Enviamos clientId para que el backend busque el reporte correcto
-    const body = { ...newsForm.value, clientId: selectedClientId.value }
+    // PREPARAR DATOS: Incluimos el ID del cliente seleccionado
+    const body = {
+      ...newsForm.value,
+      clientId: selectedClientId.value, // <--- IMPORTANTE: enviamos el cliente actual
+    }
 
     const res = await fetch(url, {
       method: method,
@@ -163,10 +142,13 @@ const submitNews = async () => {
       body: JSON.stringify(body),
     })
 
+    const data = await res.json()
+
     if (res.ok) {
       showNotification(isEditing ? 'Actualizado' : 'Creado')
       if (isEditing) cancelEdit()
       else {
+        // Limpiar formulario parcial
         newsForm.value.title = ''
         newsForm.value.reach = 0
         newsForm.value.ave_value = 0
@@ -174,7 +156,7 @@ const submitNews = async () => {
         activeTab.value = 'list'
       }
     } else {
-      showNotification('Error al guardar', 'error')
+      showNotification(data.message || 'Error desconocido', 'error')
     }
   } catch (e) {
     showNotification('Error de conexión', 'error')
@@ -183,7 +165,7 @@ const submitNews = async () => {
   }
 }
 
-// --- 4. LÓGICA DE ESTRATEGIA ---
+// --- 3. LÓGICA DE ESTRATEGIA ---
 const strategyForm = ref({
   swot_strengths: '',
   swot_opportunities: '',
@@ -195,10 +177,15 @@ const strategyForm = ref({
 
 const loadStrategy = async () => {
   try {
+    // CORRECCIÓN: URL correcta y filtrando por cliente seleccionado
     const res = await fetch(`${apiUrl}/report?clientId=${selectedClientId.value}&label=Anual`)
     if (!res.ok) throw new Error('Error al cargar estrategia')
+
     const data = await res.json()
+
+    // Guardamos ID para el submit
     if (data.meta) currentReportId.value = data.meta.id
+
     strategyForm.value = {
       swot_strengths: data.meta.swot_strengths || '',
       swot_opportunities: data.meta.swot_opportunities || '',
@@ -208,6 +195,8 @@ const loadStrategy = async () => {
       roadmap: data.meta.roadmap || '',
     }
   } catch (e) {
+    console.error('Error estrategia:', e)
+    // Limpiar formulario si falla (ej. cliente nuevo sin datos)
     strategyForm.value = {
       swot_strengths: '',
       swot_opportunities: '',
@@ -221,17 +210,19 @@ const loadStrategy = async () => {
 
 const submitStrategy = async () => {
   if (!currentReportId.value) {
-    showNotification('No hay reporte activo', 'error')
+    showNotification('No se encontró un reporte activo para este cliente', 'error')
     return
   }
   loading.value = true
   try {
+    // Usamos el ID dinámico, no el "1" fijo
     const res = await fetch(`${apiUrl}/report/${currentReportId.value}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(strategyForm.value),
     })
     if (res.ok) showNotification('Estrategia actualizada')
+    else showNotification('Error al guardar', 'error')
   } catch (e) {
     console.error(e)
   } finally {
@@ -239,68 +230,7 @@ const submitStrategy = async () => {
   }
 }
 
-// ... (dentro de script setup)
-
-// 1. FUNCION PARA ELIMINAR NOTICIA
-const deleteItem = async (id) => {
-  // Confirmación nativa del navegador (Simple y efectiva)
-  if (
-    !confirm(
-      '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.',
-    )
-  ) {
-    return
-  }
-
-  loading.value = true
-  try {
-    const res = await fetch(`${apiUrl}/news/${id}`, { method: 'DELETE' })
-
-    if (res.ok) {
-      showNotification('Registro eliminado correctamente')
-      fetchAllNews() // Recargar la tabla
-    } else {
-      showNotification('Error al eliminar', 'error')
-    }
-  } catch (e) {
-    console.error(e)
-    showNotification('Error de conexión', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 2. FUNCION PARA ELIMINAR CLIENTE
-const deleteClientBtn = async (id) => {
-  if (
-    !confirm(
-      '⚠️ ¡CUIDADO! ⚠️\n\nAl eliminar esta empresa, SE BORRARÁN TODOS sus reportes y noticias asociados.\n\n¿Realmente deseas continuar?',
-    )
-  ) {
-    return
-  }
-
-  loading.value = true
-  try {
-    const res = await fetch(`${apiUrl}/clients/${id}`, { method: 'DELETE' })
-
-    if (res.ok) {
-      showNotification('Empresa eliminada')
-      // Si borramos la empresa seleccionada actualmente, volvemos a la default (1)
-      if (selectedClientId.value === id) {
-        selectedClientId.value = 1
-      }
-      fetchClients() // Recargar lista
-    } else {
-      showNotification('Error al eliminar empresa', 'error')
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
+// Recargar datos cuando cambiamos de cliente
 watch(selectedClientId, () => {
   fetchAllNews()
   loadStrategy()
@@ -312,6 +242,7 @@ onMounted(() => {
   loadStrategy()
 })
 </script>
+
 <template>
   <div class="min-h-screen bg-zinc-100 p-4 font-sans text-zinc-800 text-xs">
     <div class="max-w-[1400px] mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
@@ -366,17 +297,6 @@ onMounted(() => {
           ]"
         >
           Estrategia
-        </button>
-        <button
-          @click="activeTab = 'clients'"
-          :class="[
-            'px-6 py-3 font-bold uppercase tracking-wide border-r border-zinc-200 transition-colors',
-            activeTab === 'clients'
-              ? 'bg-white text-emerald-800 border-t-4 border-t-emerald-600'
-              : 'text-zinc-400 hover:bg-zinc-100',
-          ]"
-        >
-          Empresas
         </button>
       </div>
 
@@ -452,13 +372,6 @@ onMounted(() => {
                   class="text-blue-600 hover:text-blue-900 font-bold p-1 hover:bg-blue-50 rounded"
                 >
                   ✏️
-                </button>
-                <button
-                  @click="deleteItem(item.id)"
-                  class="text-red-600 font-bold hover:bg-red-50 p-1 rounded"
-                  title="Eliminar"
-                >
-                  🗑️
                 </button>
               </td>
             </tr>
@@ -716,57 +629,6 @@ onMounted(() => {
             Actualizar Estrategia
           </button>
         </form>
-      </div>
-
-      <div v-if="activeTab === 'clients'" class="p-8 animate-fade-in">
-        <div class="max-w-2xl mx-auto bg-zinc-50 p-8 rounded-xl border border-zinc-200">
-          <h3 class="text-xl font-bold text-emerald-900 mb-6 border-b border-zinc-200 pb-4">
-            Registrar Nueva Empresa
-          </h3>
-          <div class="flex gap-4">
-            <input
-              v-model="newClientName"
-              type="text"
-              placeholder="Nombre de la empresa (Ej. Coca-Cola)"
-              class="flex-1 border border-zinc-300 rounded-lg p-3 font-bold text-zinc-800 outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <button
-              @click="submitClient"
-              :disabled="loading"
-              class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 rounded-lg uppercase tracking-wide text-xs"
-            >
-              {{ loading ? 'Creando...' : 'Crear Empresa' }}
-            </button>
-          </div>
-          <p class="text-zinc-400 text-xs mt-4">
-            * Al crear una empresa, se generará automáticamente su reporte anual base.
-          </p>
-
-          <div class="mt-8">
-            <h4 class="font-bold text-zinc-600 mb-4 uppercase text-xs">Empresas Activas</h4>
-            <ul class="space-y-2">
-              <li
-                v-for="c in clients"
-                :key="c.id"
-                class="bg-white p-3 rounded shadow-sm border border-zinc-200 flex justify-between items-center"
-              >
-                <span class="font-bold text-zinc-800">{{ c.name }}</span>
-                <div class="flex items-center gap-3">
-                  <span class="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded"
-                    >Activo</span
-                  >
-                  <button
-                    @click="deleteClientBtn(c.id)"
-                    class="text-zinc-400 hover:text-red-600 transition-colors"
-                    title="Eliminar Empresa"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   </div>

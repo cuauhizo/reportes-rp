@@ -3,15 +3,22 @@ const pool = require('../config/db')
 // Obtener Reporte con Filtros y KPIs calculados
 exports.getReportData = async (req, res) => {
   try {
-    const { start, end, label } = req.query
+    // Recibimos clientId. Si no viene, asumimos 1 por defecto (para no romper nada)
+    const { start, end, label, clientId = 1 } = req.query
 
-    // 1. Datos Generales (FODA, Hitos) del reporte base
-    const [reports] = await pool.query('SELECT * FROM reports WHERE id = 1')
+    // 1. Buscar el ÚLTIMO reporte de este cliente
+    const [reports] = await pool.query('SELECT * FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
+
+    // Si el cliente no tiene reportes, devolvemos un objeto vacío seguro
+    if (reports.length === 0) {
+      return res.status(404).json({ message: 'Este cliente aún no tiene reportes configurados' })
+    }
+
     const report = reports[0]
 
-    // 2. Query de Noticias con Filtro de Fechas
-    let newsQuery = 'SELECT * FROM news_items WHERE report_id = 1'
-    let newsParams = []
+    // 2. Buscar noticias usando el ID del reporte encontrado
+    let newsQuery = 'SELECT * FROM news_items WHERE report_id = ?'
+    let newsParams = [report.id]
 
     if (start && end) {
       newsQuery += ' AND publication_date BETWEEN ? AND ?'
