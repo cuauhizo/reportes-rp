@@ -26,7 +26,8 @@ const newClientName = ref('')
 
 const fetchClients = async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/clients')
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+    const res = await fetch(`${apiUrl}/clients`)
     clients.value = await res.json()
   } catch (e) {
     console.error(e)
