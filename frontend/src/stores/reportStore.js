@@ -60,6 +60,8 @@ export const useReportStore = defineStore('report', () => {
 
       // Mapeo de datos (Igual que tenías en la vista)
       reportData.value = {
+        clientName: data.meta.client_name || 'Empresa',
+        logo: data.meta.logo_url,
         period: tituloReporte,
         impacts: data.kpis.total_impacts,
         reach_raw: data.kpis.total_reach,

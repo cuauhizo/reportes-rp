@@ -7,7 +7,17 @@ exports.getReportData = async (req, res) => {
     const { start, end, label, clientId = 1 } = req.query
 
     // 1. Buscar el ÚLTIMO reporte de este cliente
-    const [reports] = await pool.query('SELECT * FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
+    // const [reports] = await pool.query('SELECT * FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
+    // CAMBIO EN LA CONSULTA: Hacemos JOIN con la tabla clients para sacar el nombre
+    const query = `
+            SELECT r.*, c.name as client_name, c.logo_url 
+            FROM reports r 
+            JOIN clients c ON r.client_id = c.id 
+            WHERE r.client_id = ? 
+            ORDER BY r.id DESC LIMIT 1
+        `
+
+    const [reports] = await pool.query(query, [clientId])
 
     // Si el cliente no tiene reportes, devolvemos un objeto vacío seguro
     if (reports.length === 0) {

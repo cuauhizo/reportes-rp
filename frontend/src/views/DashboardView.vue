@@ -70,7 +70,9 @@ onMounted(() => {
             <p class="text-red-500 font-bold tracking-widest uppercase text-xs mb-2">
               Análisis Estratégico
             </p>
-            <h1 class="text-4xl md:text-5xl font-extrabold mb-2">Harbour Energy</h1>
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2">
+              {{ reportData ? reportData.clientName : 'Cargando...' }}
+            </h1>
             <p v-if="reportData" class="text-zinc-300 text-lg opacity-90">
               {{ reportData.period }}
             </p>
