@@ -1,20 +1,29 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+// 1. IMPORTAR LA STORE Y PINIA
+import { useReportStore } from '../stores/reportStore'
+import { storeToRefs } from 'pinia'
 import AdminHeader from '../components/admin/AdminHeader.vue'
 import AdminNewsTable from '../components/admin/AdminNewsTable.vue'
 import AdminNewsForm from '../components/admin/AdminNewsForm.vue'
 import AdminStrategy from '../components/admin/AdminStrategy.vue'
 import AdminClients from '../components/admin/AdminClients.vue'
 
+const router = useRouter()
 const apiUrl = import.meta.env.VITE_API_URL
 const activeTab = ref('list')
 const clients = ref([])
-const selectedClientId = ref(1)
+// const selectedClientId = ref(1)
 const allNews = ref([])
 const editingItem = ref(null)
 const notification = ref({ show: false, message: '', type: 'success' })
 
 // --- GESTIÓN DE DATOS GLOBALES ---
+const store = useReportStore()
+// Usamos un "alias" para no tener que renombrar todo tu código.
+// Ahora 'selectedClientId' apunta directamente a la variable global 'currentClientId'
+const { currentClientId: selectedClientId } = storeToRefs(store)
 
 const fetchClients = async () => {
   try {

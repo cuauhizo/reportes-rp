@@ -35,6 +35,20 @@ exports.createClient = async (req, res) => {
   }
 }
 
+// EDITAR CLIENTE
+exports.updateClient = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name } = req.body
+    if (!name) return res.status(400).json({ message: 'Nombre requerido' })
+
+    await pool.query('UPDATE clients SET name = ? WHERE id = ?', [name, id])
+    res.json({ message: 'Cliente actualizado' })
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar' })
+  }
+}
+
 // ELIMINAR CLIENTE
 exports.deleteClient = async (req, res) => {
   try {

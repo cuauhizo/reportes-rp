@@ -27,6 +27,25 @@ const createClient = async () => {
   }
 }
 
+const editClient = async (client) => {
+  const newName = prompt('Nuevo nombre para la empresa:', client.name)
+  if (!newName || newName === client.name) return // Si cancela o no cambia, no hacemos nada
+
+  try {
+    const res = await fetch(`${apiUrl}/clients/${client.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+    })
+    if (res.ok) {
+      emit('notify', 'Nombre actualizado', 'success')
+      emit('refresh') // Recargamos la lista
+    }
+  } catch (e) {
+    emit('notify', 'Error', 'error')
+  }
+}
+
 const deleteClient = async (client) => {
   const confirmation = prompt(`Para confirmar, escribe el nombre: "${client.name}"`)
   if (confirmation !== client.name) return
@@ -68,12 +87,27 @@ const deleteClient = async (client) => {
           <li
             v-for="c in clients"
             :key="c.id"
-            class="bg-white p-3 rounded border flex justify-between items-center"
+            class="bg-white p-3 rounded shadow-sm border border-zinc-200 flex justify-between items-center"
           >
-            <span class="font-bold">{{ c.name }}</span>
-            <button @click="deleteClient(c)" class="text-zinc-400 hover:text-red-600 font-bold">
-              ✕
-            </button>
+            <span class="font-bold text-zinc-800">{{ c.name }}</span>
+
+            <div class="flex items-center gap-2">
+              <button
+                @click="editClient(c)"
+                class="text-blue-500 hover:text-blue-700 font-bold px-2"
+                title="Renombrar"
+              >
+                ✎
+              </button>
+
+              <button
+                @click="deleteClient(c)"
+                class="text-zinc-400 hover:text-red-600 font-bold px-2"
+                title="Eliminar"
+              >
+                ✕
+              </button>
+            </div>
           </li>
         </ul>
       </div>

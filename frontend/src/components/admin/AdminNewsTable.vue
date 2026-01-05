@@ -1,18 +1,81 @@
 <script setup>
+import { ref, computed } from 'vue'
+
 const props = defineProps(['news'])
 const emit = defineEmits(['edit', 'delete'])
+
+// 1. VARIABLE PARA LA BÚSQUEDA
+const searchQuery = ref('')
+
+// 2. FILTRO COMPUTADO (Mágia en tiempo real)
+const filteredNews = computed(() => {
+  if (!searchQuery.value) return props.news // Si está vacío, devuelve todo
+
+  const query = searchQuery.value.toLowerCase()
+
+  return props.news.filter(
+    (item) =>
+      item.title.toLowerCase().includes(query) ||
+      item.media_name.toLowerCase().includes(query) ||
+      item.media_type.toLowerCase().includes(query) ||
+      item.key_message.toLowerCase().includes(query) ||
+      (item.reporter && item.reporter.toLowerCase().includes(query)),
+  )
+})
+
+// Función para asignar colores según el género
+const getMediaTypeClass = (type) => {
+  switch (type) {
+    case 'Nota':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-200' // Verde (Estándar)
+    case 'Columna':
+      return 'bg-blue-100 text-blue-800 border-blue-200' // Azul (Opinión)
+    case 'Entrevista':
+      return 'bg-purple-100 text-purple-800 border-purple-200' // Morado (Destacado)
+    case 'Artículo':
+      return 'bg-amber-100 text-amber-800 border-amber-200' // Naranja (Análisis)
+    case 'Mención':
+      return 'bg-zinc-100 text-zinc-600 border-zinc-200' // Gris (Menor impacto)
+    case 'Reportaje':
+      return 'bg-pink-100 text-pink-800 border-pink-200' // Rosa (Especial)
+    case 'Comunicado':
+      return 'bg-cyan-100 text-cyan-800 border-cyan-200' // Cyan (Corporativo)
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
 
 const formatCurrency = (val) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)
 </script>
 
 <template>
-  <div class="overflow-x-auto animate-fade-in">
+  <div class="overflow-x-auto animate-fade-in p-1">
+    <div
+      class="mb-4 flex items-center md:items-end bg-white border border-zinc-200 rounded-lg px-3 py-2 w-full md:w-1/3 shadow-sm focus-within:ring-2 focus-within:ring-emerald-500"
+    >
+      <span class="text-zinc-400 mr-2">🔍</span>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Buscar por título, medio, tema..."
+        class="w-full outline-none text-xs font-bold text-zinc-700 bg-transparent placeholder-zinc-400"
+      />
+      <button
+        v-if="searchQuery"
+        @click="searchQuery = ''"
+        class="text-zinc-300 hover:text-zinc-500 font-bold ml-2"
+      >
+        ✕
+      </button>
+    </div>
     <table class="w-full text-left border-collapse">
       <thead class="bg-emerald-700 text-white font-bold whitespace-nowrap">
         <tr>
           <th class="p-3 border-r border-emerald-600 w-10">#</th>
-          <th class="p-3 border-r border-emerald-600 w-24">Fecha</th>
+          <th class="p-3 border-r border-emerald-600 w-24">
+            Fecha <span class="text-xs opacity-70">▼</span>
+          </th>
           <th class="p-3 border-r border-emerald-600">Tema</th>
           <th class="p-3 border-r border-emerald-600">Medio</th>
           <th class="p-3 border-r border-emerald-600 w-20 text-center">Género</th>
@@ -26,7 +89,7 @@ const formatCurrency = (val) =>
       </thead>
       <tbody class="divide-y divide-zinc-200 text-xs">
         <tr
-          v-for="(item, index) in news"
+          v-for="(item, index) in filteredNews"
           :key="item.id"
           class="hover:bg-yellow-50 transition-colors"
         >
@@ -40,9 +103,13 @@ const formatCurrency = (val) =>
           </td>
           <td class="p-2 border-r border-zinc-200 text-center">
             <span
-              class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-green-200"
-              >{{ item.media_type }}</span
+              :class="[
+                'px-2 py-0.5 rounded text-[10px] font-bold uppercase border',
+                getMediaTypeClass(item.media_type),
+              ]"
             >
+              {{ item.media_type }}
+            </span>
           </td>
           <td class="p-2 border-r border-zinc-200 text-zinc-600">{{ item.reporter || '-' }}</td>
           <td class="p-2 border-r border-zinc-200 text-right font-mono">
@@ -82,8 +149,12 @@ const formatCurrency = (val) =>
             </button>
           </td>
         </tr>
-        <tr v-if="news.length === 0">
-          <td colspan="11" class="p-8 text-center text-zinc-400 italic">No hay registros.</td>
+        <tr v-if="filteredNews.length === 0">
+          <td colspan="11" class="p-8 text-center text-zinc-400 italic">
+            {{
+              searchQuery ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros.'
+            }}
+          </td>
         </tr>
       </tbody>
     </table>

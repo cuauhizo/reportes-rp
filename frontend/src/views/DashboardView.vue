@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted } from 'vue'
-import { useReportStore } from '../stores/reportStore' // <--- Importamos la store
-import { storeToRefs } from 'pinia' // Para mantener reactividad al desestructurar
+import { useReportStore } from '../stores/reportStore'
+import { storeToRefs } from 'pinia'
 import { useExport } from '../composables/useExport'
 
 // Componentes
@@ -14,20 +14,21 @@ import ContextSection from '../components/ContextSection.vue'
 import NavBar from '../components/NavBar.vue'
 import DistributionCharts from '../components/DistributionCharts.vue'
 
-// Usar la Store
 const store = useReportStore()
+const {
+  reportData,
+  loading,
+  currentClientId,
+  formattedReach,
+  formattedAve,
+  tier1Percentage,
+  trendData,
+  topNotes,
+} = storeToRefs(store)
 
-// Extraemos las propiedades reactivas (State y Getters)
-// storeToRefs es importante para no perder la reactividad
-const { reportData, loading, formattedReach, formattedAve, tier1Percentage, trendData, topNotes } =
-  storeToRefs(store)
-
-// La acción (método) se extrae directamente
 const { fetchReport } = store
-
 const { exportToExcel, exportToPDF } = useExport()
 
-// Funciones para los botones
 const handleDownloadExcel = () => {
   if (reportData.value && reportData.value.news) {
     exportToExcel(reportData.value.news, `Reporte_${reportData.value.period}.xlsx`)
@@ -38,17 +39,14 @@ const handleDownloadPDF = () => {
   exportToPDF('dashboard-content', `Reporte_Ejecutivo.pdf`)
 }
 
-// Helper simple para la vista (Top Notas)
 const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
   return num
 }
 
-// Cargar datos al iniciar
 onMounted(() => {
-  // Solo cargamos si no hay datos previos (opcional, para caché)
-  if (!reportData.value) {
+  if (!reportData.value || reportData.value.clientId !== currentClientId.value) {
     fetchReport()
   }
 })
@@ -110,7 +108,10 @@ onMounted(() => {
         <p class="text-zinc-500 animate-pulse font-bold">Cargando datos...</p>
       </div>
 
-      <div v-else-if="reportData" class="max-w-7xl mx-auto px-4 md:px-8 space-y-16">
+      <div
+        v-else-if="reportData && reportData.news && reportData.news.length > 0"
+        class="max-w-7xl mx-auto px-4 md:px-8 space-y-16"
+      >
         <KpiCards
           :impacts="reportData.impacts"
           :reach="formattedReach"
@@ -212,7 +213,25 @@ onMounted(() => {
         </section>
       </div>
 
-      <div v-else class="text-center py-20 text-red-600 font-bold">No se encontraron datos</div>
+      <div
+        v-else
+        class="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-zinc-300 rounded-3xl bg-white/50 mx-4 md:mx-auto max-w-4xl"
+      >
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-2xl font-bold text-zinc-700 mb-2">
+          No hay datos registrados para este periodo
+        </h3>
+        <p class="text-zinc-500 max-w-md mb-8">
+          Parece que "{{ reportData?.clientName || 'esta empresa' }}" aún no tiene noticias cargadas
+          en las fechas seleccionadas.
+        </p>
+        <router-link
+          to="/admin"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105"
+        >
+          Ir a Gestión y Cargar Noticias
+        </router-link>
+      </div>
     </div>
   </div>
 </template>

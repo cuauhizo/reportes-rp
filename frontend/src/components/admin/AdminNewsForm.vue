@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { TIERS, SENTIMENTS, MEDIA_TYPES } from '../../utils/constants'
 
 const props = defineProps(['editingItem', 'clientId'])
 const emit = defineEmits(['saved', 'cancel', 'notify'])
@@ -136,9 +137,7 @@ const submit = async () => {
         <div>
           <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1">Género</label
           ><select v-model="form.media_type" class="w-full border rounded p-2">
-            <option>Nota</option>
-            <option>Columna</option>
-            <option>Entrevista</option>
+            <option v-for="type in MEDIA_TYPES" :key="type" :value="type">{{ type }}</option>
           </select>
         </div>
         <div>
@@ -148,9 +147,7 @@ const submit = async () => {
         <div>
           <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1">Sentimiento</label
           ><select v-model="form.sentiment" class="w-full border rounded p-2">
-            <option>Positivo</option>
-            <option>Neutro</option>
-            <option>Negativo</option>
+            <option v-for="s in SENTIMENTS" :key="s" :value="s">{{ s }}</option>
           </select>
         </div>
       </div>
@@ -167,23 +164,31 @@ const submit = async () => {
       </div>
       <div class="grid grid-cols-3 gap-6 bg-zinc-50 p-4 rounded border">
         <div>
-          <label class="block font-bold text-[10px] uppercase text-zinc-400 mb-1">Alcance</label
-          ><input v-model="form.reach" type="number" class="w-full border rounded p-2 text-right" />
+          <label class="block font-bold text-[10px] uppercase text-zinc-400 mb-1">Alcance</label>
+          <input v-model="form.reach" type="number" class="w-full border rounded p-2 text-right" />
+          <p v-if="form.reach" class="text-[10px] text-emerald-600 text-right font-mono mt-1">
+            {{ new Intl.NumberFormat('es-MX').format(form.reach) }} personas
+          </p>
         </div>
         <div>
-          <label class="block font-bold text-[10px] uppercase text-zinc-400 mb-1">ROI</label
-          ><input
+          <label class="block font-bold text-[10px] uppercase text-zinc-400 mb-1">ROI</label>
+          <input
             v-model="form.ave_value"
             type="number"
             class="w-full border rounded p-2 text-right"
           />
+          <p v-if="form.ave_value" class="text-[10px] text-emerald-600 text-right font-mono mt-1">
+            {{
+              new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
+                form.ave_value,
+              )
+            }}
+          </p>
         </div>
         <div>
           <label class="block font-bold text-[10px] uppercase text-zinc-400 mb-1">Tier</label
           ><select v-model="form.tier" class="w-full border rounded p-2">
-            <option>Tier 1</option>
-            <option>Tier 2</option>
-            <option>Tier 3</option>
+            <option v-for="t in TIERS" :key="t" :value="t">{{ t }}</option>
           </select>
         </div>
       </div>
