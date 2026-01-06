@@ -24,22 +24,35 @@ const filteredNews = computed(() => {
 })
 
 // Función para asignar colores según el género
+// const getMediaTypeClass = (type) => {
+//   switch (type) {
+//     case 'Nota':
+//       return 'bg-emerald-100 text-emerald-800 border-emerald-200' // Verde (Estándar)
+//     case 'Columna':
+//       return 'bg-blue-100 text-blue-800 border-blue-200' // Azul (Opinión)
+//     case 'Entrevista':
+//       return 'bg-purple-100 text-purple-800 border-purple-200' // Morado (Destacado)
+//     case 'Artículo':
+//       return 'bg-amber-100 text-amber-800 border-amber-200' // Naranja (Análisis)
+//     case 'Mención':
+//       return 'bg-zinc-100 text-zinc-600 border-zinc-200' // Gris (Menor impacto)
+//     case 'Reportaje':
+//       return 'bg-pink-100 text-pink-800 border-pink-200' // Rosa (Especial)
+//     case 'Comunicado':
+//       return 'bg-cyan-100 text-cyan-800 border-cyan-200' // Cyan (Corporativo)
+//     default:
+//       return 'bg-gray-100 text-gray-800 border-gray-200'
+//   }
+// }
+
 const getMediaTypeClass = (type) => {
   switch (type) {
-    case 'Nota':
+    case 'Digital':
       return 'bg-emerald-100 text-emerald-800 border-emerald-200' // Verde (Estándar)
-    case 'Columna':
+    case 'Impreso':
       return 'bg-blue-100 text-blue-800 border-blue-200' // Azul (Opinión)
-    case 'Entrevista':
-      return 'bg-purple-100 text-purple-800 border-purple-200' // Morado (Destacado)
-    case 'Artículo':
+    case 'Radio/TV':
       return 'bg-amber-100 text-amber-800 border-amber-200' // Naranja (Análisis)
-    case 'Mención':
-      return 'bg-zinc-100 text-zinc-600 border-zinc-200' // Gris (Menor impacto)
-    case 'Reportaje':
-      return 'bg-pink-100 text-pink-800 border-pink-200' // Rosa (Especial)
-    case 'Comunicado':
-      return 'bg-cyan-100 text-cyan-800 border-cyan-200' // Cyan (Corporativo)
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200'
   }

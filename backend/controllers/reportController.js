@@ -52,11 +52,56 @@ exports.getReportData = async (req, res) => {
       negative: news.filter(n => n.sentiment === 'Negativo').length,
     }
 
+    // 1. DETERMINAR GRANULARIDAD (Día vs Mes)
+const startDateObj = new Date(start || report.start_date);
+const endDateObj = new Date(end || report.end_date);
+const diffTime = Math.abs(endDateObj - startDateObj);
+const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+// Si el periodo es mayor a 40 días (ej. Trimestral o Anual), agrupamos por MES.
+// Si es menor (ej. Mensual o Rango corto), agrupamos por DÍA.
+let dateFormatSQL;
+let labelFormatJS; // Para formatear bonito la fecha
+
+if (diffDays > 40) {
+    // Modo ANUAL/TRIMESTRAL -> Agrupar por Mes (YYYY-MM)
+    dateFormatSQL = '%Y-%m'; 
+} else {
+    // Modo MENSUAL -> Agrupar por Día (YYYY-MM-DD)
+    dateFormatSQL = '%Y-%m-%d';
+}
+
+// 2. CONSULTA SQL PARA LA GRÁFICA
+// Usamos el mismo filtro de noticias (newsQuery) pero agrupamos
+const trendQuery = `
+    SELECT 
+        DATE_FORMAT(publication_date, ?) as date_label, 
+        COUNT(*) as count 
+    FROM news_items 
+    WHERE report_id = ? 
+    ${start && end ? 'AND publication_date BETWEEN ? AND ?' : ''}
+    GROUP BY date_label 
+    ORDER BY date_label ASC
+`;
+
+const trendParams = [dateFormatSQL, report.id];
+if (start && end) trendParams.push(start, end);
+
+const [trendResults] = await pool.query(trendQuery, trendParams);
+
+// 3. FORMATEAR PARA EL FRONTEND (Chart.js)
+const trendData = {
+    labels: trendResults.map(item => item.date_label),
+    values: trendResults.map(item => item.count)
+};
+
     res.json({
-      meta: { ...report, period_label: label || report.period_label },
+      // meta: { ...report, period_label: label || report.period_label },
+      meta: { ...report, client_name: report.client_name, logo_url: report.logo_url, period_label: label || report.period_label },
       kpis,
       sentimentCounts,
-      news,
+      trendData,
+      news
     })
   } catch (error) {
     res.status(500).json({ message: 'Error en servidor', error })
