@@ -45,6 +45,29 @@ const formatNumber = (num) => {
   return num
 }
 
+// Función para el encabezado (Formato largo y elegante)
+const formatDateHeader = (dateStr) => {
+  if (!dateStr) return ''
+  // Dividimos la fecha para evitar problemas de zona horaria
+  const [year, month, day] = dateStr.split('T')[0].split('-')
+  const months = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ]
+
+  return `${day} de ${months[parseInt(month) - 1]} de ${year}`
+}
+
 onMounted(() => {
   if (!reportData.value || reportData.value.clientId !== currentClientId.value) {
     fetchReport()
@@ -72,7 +95,14 @@ onMounted(() => {
               {{ reportData ? reportData.clientName : 'Cargando...' }}
             </h1>
             <p v-if="reportData" class="text-zinc-300 text-lg opacity-90">
-              {{ reportData.period }}
+              <span v-if="reportData.period && !reportData.period.includes('Periodo:')">
+                {{ reportData.period }}
+              </span>
+
+              <span v-else>
+                Del {{ formatDateHeader(reportData.startDate) }} al
+                {{ formatDateHeader(reportData.endDate) }}
+              </span>
             </p>
           </div>
 

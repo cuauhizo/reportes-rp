@@ -58,6 +58,16 @@ const getMediaTypeClass = (type) => {
   }
 }
 
+// Función para formatear fecha (dd/mm/aaaa)
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  // Dividimos la fecha que viene como "2025-02-01T..."
+  const [year, month, day] = dateString.split('T')[0].split('-')
+
+  // Retornamos en el orden que quieres
+  return `${day}/${month}/${year}`
+}
+
 const formatCurrency = (val) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)
 </script>
@@ -108,7 +118,7 @@ const formatCurrency = (val) =>
         >
           <td class="p-2 border-r border-zinc-200 text-zinc-500 text-center">{{ index + 1 }}</td>
           <td class="p-2 border-r border-zinc-200 whitespace-nowrap">
-            {{ item.publication_date.split('T')[0] }}
+            {{ formatDate(item.publication_date) }}
           </td>
           <td class="p-2 border-r border-zinc-200 font-medium">{{ item.key_message }}</td>
           <td class="p-2 border-r border-zinc-200 font-bold text-emerald-900">
