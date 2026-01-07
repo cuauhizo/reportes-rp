@@ -9,6 +9,12 @@ let myChart = null
 const renderChart = () => {
   if (myChart) myChart.destroy()
 
+  // --- AGREGA ESTO ---
+  console.log('DATOS RECIBIDOS EN GRÁFICA:', props.labels)
+  // Si aquí ves ['2025-02'], el backend está agrupando por mes (ERROR).
+  // Si ves ['2025-02-01', '2025-02-05'], el backend está bien.
+  // -------------------
+
   myChart = new Chart(chartCanvas.value, {
     type: 'line',
     data: {
