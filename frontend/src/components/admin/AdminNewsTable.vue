@@ -1,13 +1,33 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { Search, Edit2, Trash2, Calendar, Hash, ExternalLink } from 'lucide-vue-next'
 
 const props = defineProps(['news'])
 const emit = defineEmits(['edit', 'delete'])
-
-// 1. VARIABLE PARA LA BÚSQUEDA
 const searchQuery = ref('')
 
-// 2. FILTRO COMPUTADO (Mágia en tiempo real)
+// Función colores (Actualizada a colores más sobrios/profesionales)
+// const getMediaTypeClass = (type) => {
+//   const styles = {
+//     'Nota': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+//     'Columna': 'bg-blue-50 text-blue-700 border-blue-200',
+//     'Entrevista': 'bg-purple-50 text-purple-700 border-purple-200',
+//     'Artículo': 'bg-amber-50 text-amber-700 border-amber-200',
+//     'Mención': 'bg-zinc-50 text-zinc-600 border-zinc-200',
+//   };
+//   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200';
+// };
+
+// Función colores (Actualizada a colores más sobrios/profesionales)
+const getMediaTypeClass = (type) => {
+  const styles = {
+    Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    Impreso: 'bg-blue-50 text-blue-700 border-blue-200',
+    'Radio/TV': 'bg-amber-50 text-amber-700 border-amber-200',
+  }
+  return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200'
+}
+
 const filteredNews = computed(() => {
   if (!searchQuery.value) return props.news // Si está vacío, devuelve todo
 
@@ -22,41 +42,6 @@ const filteredNews = computed(() => {
       (item.reporter && item.reporter.toLowerCase().includes(query)),
   )
 })
-
-// Función para asignar colores según el género
-// const getMediaTypeClass = (type) => {
-//   switch (type) {
-//     case 'Nota':
-//       return 'bg-emerald-100 text-emerald-800 border-emerald-200' // Verde (Estándar)
-//     case 'Columna':
-//       return 'bg-blue-100 text-blue-800 border-blue-200' // Azul (Opinión)
-//     case 'Entrevista':
-//       return 'bg-purple-100 text-purple-800 border-purple-200' // Morado (Destacado)
-//     case 'Artículo':
-//       return 'bg-amber-100 text-amber-800 border-amber-200' // Naranja (Análisis)
-//     case 'Mención':
-//       return 'bg-zinc-100 text-zinc-600 border-zinc-200' // Gris (Menor impacto)
-//     case 'Reportaje':
-//       return 'bg-pink-100 text-pink-800 border-pink-200' // Rosa (Especial)
-//     case 'Comunicado':
-//       return 'bg-cyan-100 text-cyan-800 border-cyan-200' // Cyan (Corporativo)
-//     default:
-//       return 'bg-gray-100 text-gray-800 border-gray-200'
-//   }
-// }
-
-const getMediaTypeClass = (type) => {
-  switch (type) {
-    case 'Digital':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-200' // Verde (Estándar)
-    case 'Impreso':
-      return 'bg-blue-100 text-blue-800 border-blue-200' // Azul (Opinión)
-    case 'Radio/TV':
-      return 'bg-amber-100 text-amber-800 border-amber-200' // Naranja (Análisis)
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
 
 // Función para formatear fecha (dd/mm/aaaa)
 const formatDate = (dateString) => {
@@ -73,113 +58,125 @@ const formatCurrency = (val) =>
 </script>
 
 <template>
-  <div class="overflow-x-auto animate-fade-in p-1">
-    <div
-      class="mb-4 flex items-center md:items-end bg-white border border-zinc-200 rounded-lg px-3 py-2 w-full md:w-1/3 shadow-sm focus-within:ring-2 focus-within:ring-emerald-500"
-    >
-      <span class="text-zinc-400 mr-2">🔍</span>
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Buscar por título, medio, tema..."
-        class="w-full outline-none text-xs font-bold text-zinc-700 bg-transparent placeholder-zinc-400"
-      />
-      <button
-        v-if="searchQuery"
-        @click="searchQuery = ''"
-        class="text-zinc-300 hover:text-zinc-500 font-bold ml-2"
-      >
-        ✕
-      </button>
+  <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+    <div class="p-4 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
+      <div class="relative w-full md:w-96">
+        <Search class="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar noticia, medio, tema..."
+          class="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+        />
+      </div>
+      <div class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+        {{ filteredNews.length }} Registros
+      </div>
     </div>
-    <table class="w-full text-left border-collapse">
-      <thead class="bg-emerald-700 text-white font-bold whitespace-nowrap">
-        <tr>
-          <th class="p-3 border-r border-emerald-600 w-10">#</th>
-          <th class="p-3 border-r border-emerald-600 w-24">
-            Fecha <span class="text-xs opacity-70">▼</span>
-          </th>
-          <th class="p-3 border-r border-emerald-600">Tema</th>
-          <th class="p-3 border-r border-emerald-600">Medio</th>
-          <th class="p-3 border-r border-emerald-600 w-20 text-center">Género</th>
-          <th class="p-3 border-r border-emerald-600">Reportero</th>
-          <th class="p-3 border-r border-emerald-600 text-right">Alcance</th>
-          <th class="p-3 border-r border-emerald-600 text-right">ROI (AVE)</th>
-          <th class="p-3 border-r border-emerald-600 w-64">Testigo</th>
-          <th class="p-3 border-r border-emerald-600 w-24 text-center">Valoración</th>
-          <th class="p-3 text-center w-16">Acción</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-zinc-200 text-xs">
-        <tr
-          v-for="(item, index) in filteredNews"
-          :key="item.id"
-          class="hover:bg-yellow-50 transition-colors"
-        >
-          <td class="p-2 border-r border-zinc-200 text-zinc-500 text-center">{{ index + 1 }}</td>
-          <td class="p-2 border-r border-zinc-200 whitespace-nowrap">
-            {{ formatDate(item.publication_date) }}
-          </td>
-          <td class="p-2 border-r border-zinc-200 font-medium">{{ item.key_message }}</td>
-          <td class="p-2 border-r border-zinc-200 font-bold text-emerald-900">
-            {{ item.media_name }}
-          </td>
-          <td class="p-2 border-r border-zinc-200 text-center">
-            <span
-              :class="[
-                'px-2 py-0.5 rounded text-[10px] font-bold uppercase border',
-                getMediaTypeClass(item.media_type),
-              ]"
-            >
-              {{ item.media_type }}
-            </span>
-          </td>
-          <td class="p-2 border-r border-zinc-200 text-zinc-600">{{ item.reporter || '-' }}</td>
-          <td class="p-2 border-r border-zinc-200 text-right font-mono">
-            {{ item.reach.toLocaleString() }}
-          </td>
-          <td class="p-2 border-r border-zinc-200 text-right font-mono text-zinc-600 font-bold">
-            {{ formatCurrency(item.ave_value) }}
-          </td>
-          <td class="p-2 border-r border-zinc-200 truncate max-w-xs">
-            <span class="text-blue-600 font-medium">{{ item.title }}</span>
-          </td>
-          <td class="p-2 border-r border-zinc-200 text-center">
-            <span
-              :class="[
-                'px-2 py-0.5 rounded text-[10px] font-bold border',
-                item.sentiment === 'Positivo'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : item.sentiment === 'Negativo'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-zinc-100',
-              ]"
-              >{{ item.sentiment }}</span
-            >
-          </td>
-          <td class="p-2 text-center flex justify-center gap-2">
-            <button
-              @click="emit('edit', item)"
-              class="text-blue-600 font-bold hover:bg-blue-50 p-1 rounded"
-            >
-              ✏️
-            </button>
-            <button
-              @click="emit('delete', item.id)"
-              class="text-red-600 font-bold hover:bg-red-50 p-1 rounded"
-            >
-              🗑️
-            </button>
-          </td>
-        </tr>
-        <tr v-if="filteredNews.length === 0">
-          <td colspan="11" class="p-8 text-center text-zinc-400 italic">
-            {{
-              searchQuery ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros.'
-            }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-zinc-50 text-zinc-500 font-bold text-[10px] uppercase tracking-wider">
+          <tr>
+            <th class="p-4 w-10 text-center">#</th>
+            <th class="p-4 w-32">Fecha</th>
+            <th class="p-4">Titular / Tema</th>
+            <th class="p-4">Medio</th>
+            <th class="p-4">Reportero</th>
+            <th class="p-4 text-center">Tipo</th>
+            <th class="p-4 text-right">Alcance</th>
+            <th class="p-4 text-right">AVE</th>
+            <th class="p-4 text-center">Sentimiento</th>
+            <th class="p-4 text-center w-24">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100 text-xs text-zinc-700">
+          <tr
+            v-for="(item, index) in filteredNews"
+            :key="item.id"
+            class="hover:bg-zinc-50 transition-colors group"
+          >
+            <td class="p-4 text-center text-zinc-400 font-mono">{{ index + 1 }}</td>
+            <td class="p-4 font-medium text-zinc-500 whitespace-nowrap">
+              {{ formatDate(item.publication_date) }}
+            </td>
+
+            <td class="p-4 max-w-xs">
+              <div class="font-bold text-zinc-900 truncate mb-1" :title="item.title">
+                {{ item.title }}
+              </div>
+              <div
+                class="inline-flex items-center text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
+              >
+                <Hash class="w-3 h-3" />{{ item.key_message }}
+              </div>
+            </td>
+
+            <td class="p-4 font-bold text-zinc-800">{{ item.media_name }}</td>
+            <td class="p-4 text-zinc-800">{{ item.reporter || '-' }}</td>
+
+            <td class="p-4 text-center">
+              <span
+                :class="[
+                  'px-2.5 py-1 rounded-full text-[10px] font-bold border',
+                  getMediaTypeClass(item.media_type),
+                ]"
+              >
+                {{ item.media_type }}
+              </span>
+            </td>
+
+            <td class="p-4 text-right font-mono">{{ item.reach.toLocaleString() }}</td>
+            <td class="p-4 text-right font-mono font-bold text-zinc-600">
+              {{ formatCurrency(item.ave_value) }}
+            </td>
+
+            <td class="p-4 text-center">
+              <div class="flex justify-center">
+                <span
+                  :class="[
+                    'w-2 h-2 rounded-full mr-2',
+                    item.sentiment === 'Positivo'
+                      ? 'bg-emerald-500'
+                      : item.sentiment === 'Negativo'
+                        ? 'bg-red-500'
+                        : 'bg-zinc-400',
+                  ]"
+                ></span>
+                {{ item.sentiment }}
+              </div>
+            </td>
+
+            <td class="p-4">
+              <div
+                class="flex justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+              >
+                <button
+                  @click="emit('edit', item)"
+                  class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Editar"
+                >
+                  <Edit2 class="w-4 h-4" />
+                </button>
+                <button
+                  @click="emit('delete', item.id)"
+                  class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="filteredNews.length === 0">
+            <td colspan="11" class="p-8 text-center text-zinc-400 italic">
+              {{
+                searchQuery ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros.'
+              }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>

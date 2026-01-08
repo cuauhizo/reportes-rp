@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useReportStore } from '../stores/reportStore'
 import { storeToRefs } from 'pinia'
 import { useExport } from '../composables/useExport'
+import { Settings, FileSpreadsheet, FileText, FileSearch, Plus } from 'lucide-vue-next'
 
 // Componentes
 import KpiCards from '../components/KpiCards.vue'
@@ -109,23 +110,26 @@ onMounted(() => {
           <div class="mt-6 md:mt-0 flex gap-3 no-print">
             <router-link
               to="/admin"
-              class="bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded text-xs font-bold uppercase backdrop-blur-sm border border-white/10"
+              class="bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded text-xs font-bold uppercase backdrop-blur-sm border border-white/10 flex items-center gap-2 transition-colors"
             >
-              ⚙️ Gestión
+              <Settings class="w-4 h-4" />
+              Gestión
             </router-link>
 
             <button
               @click="handleDownloadExcel"
-              class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded text-xs font-bold uppercase shadow-lg flex items-center gap-2"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded text-xs font-bold uppercase shadow-lg flex items-center gap-2 transition-colors"
             >
-              📥 Excel
+              <FileSpreadsheet class="w-4 h-4" />
+              Excel
             </button>
 
             <button
               @click="handleDownloadPDF"
-              class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded text-xs font-bold uppercase shadow-lg flex items-center gap-2"
+              class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded text-xs font-bold uppercase shadow-lg flex items-center gap-2 transition-colors"
             >
-              📄 PDF
+              <FileText class="w-4 h-4" />
+              PDF
             </button>
           </div>
         </div>
@@ -245,21 +249,32 @@ onMounted(() => {
 
       <div
         v-else
-        class="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-zinc-300 rounded-3xl bg-white/50 mx-4 md:mx-auto max-w-4xl"
+        class="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-zinc-200 rounded-[2.5rem] bg-zinc-50/50 mx-4 md:mx-auto max-w-5xl"
       >
-        <div class="text-6xl mb-4">📝</div>
-        <h3 class="text-2xl font-bold text-zinc-700 mb-2">
-          No hay datos registrados para este periodo
+        <div class="bg-white p-6 rounded-full shadow-sm mb-6">
+          <FileSearch class="w-16 h-16 text-zinc-300" stroke-width="1.5" />
+        </div>
+
+        <h3 class="text-2xl font-black text-zinc-900 mb-3 tracking-tight">
+          No hay datos registrados
         </h3>
-        <p class="text-zinc-500 max-w-md mb-8">
-          Parece que "{{ reportData?.clientName || 'esta empresa' }}" aún no tiene noticias cargadas
-          en las fechas seleccionadas.
+
+        <p class="text-zinc-500 max-w-md mb-8 text-sm leading-relaxed">
+          No encontramos noticias para
+          <span class="font-bold text-zinc-800"
+            >"{{ reportData?.clientName || 'esta empresa' }}"</span
+          >
+          en el periodo seleccionado.
         </p>
+
         <router-link
           to="/admin"
-          class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105"
+          class="group bg-zinc-900 hover:bg-black text-white font-bold py-4 px-8 rounded-xl shadow-xl shadow-zinc-200 transition-all hover:-translate-y-1 active:translate-y-0 flex items-center gap-3"
         >
-          Ir a Gestión y Cargar Noticias
+          <div class="bg-white/20 p-1 rounded-lg group-hover:bg-white/30 transition-colors">
+            <Plus class="w-5 h-5" />
+          </div>
+          <span>Ir a Gestión y Cargar Noticias</span>
         </router-link>
       </div>
     </div>

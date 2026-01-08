@@ -9,6 +9,15 @@ import AdminNewsTable from '../components/admin/AdminNewsTable.vue'
 import AdminNewsForm from '../components/admin/AdminNewsForm.vue'
 import AdminStrategy from '../components/admin/AdminStrategy.vue'
 import AdminClients from '../components/admin/AdminClients.vue'
+import {
+  Database,
+  FilePlus,
+  Target,
+  Building,
+  Users,
+  CheckCircle,
+  AlertTriangle,
+} from 'lucide-vue-next'
 
 const router = useRouter()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -88,91 +97,115 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-100 p-4 font-sans text-zinc-800 text-xs">
-    <div class="max-w-[1400px] mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
+  <div class="min-h-screen bg-zinc-100 font-sans text-zinc-800 text-xs">
+    <div class="min-h-screen bg-[#f4f4f5] font-sans text-zinc-800">
       <AdminHeader :clients="clients" v-model:selectedClientId="selectedClientId" />
 
-      <div class="flex border-b border-zinc-200 bg-zinc-50 overflow-x-auto">
-        <button
-          @click="activeTab = 'list'"
+      <div class="bg-white border-b border-zinc-200 px-8 py-4 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto flex gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar mb-4">
+          <button
+            @click="activeTab = 'list'"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              activeTab === 'list'
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
+            ]"
+          >
+            <Database class="w-4 h-4" /> Base de Datos
+          </button>
+
+          <button
+            @click="activeTab = 'news'"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              activeTab === 'news'
+                ? 'bg-red-600 text-white border-red-600 shadow-lg'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
+            ]"
+          >
+            <FilePlus class="w-4 h-4" /> {{ editingItem ? 'Editar Registro' : 'Nuevo Registro' }}
+          </button>
+
+          <button
+            @click="activeTab = 'strategy'"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              activeTab === 'strategy'
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
+            ]"
+          >
+            <Target class="w-4 h-4" /> Estrategia
+          </button>
+
+          <button
+            @click="activeTab = 'clients'"
+            :class="[
+              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              activeTab === 'clients'
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
+                : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
+            ]"
+          >
+            <Building class="w-4 h-4" /> Empresas
+          </button>
+        </div>
+
+        <div v-if="activeTab === 'list'">
+          <AdminNewsTable :news="allNews" @edit="handleEdit" @delete="handleDelete" />
+        </div>
+
+        <div v-if="activeTab === 'news'">
+          <AdminNewsForm
+            :editingItem="editingItem"
+            :clientId="selectedClientId"
+            @saved="handleSaveSuccess"
+            @cancel="handleCancelEdit"
+            @notify="showNotify"
+          />
+        </div>
+
+        <div v-if="activeTab === 'strategy'">
+          <AdminStrategy :clientId="selectedClientId" @notify="showNotify" />
+        </div>
+
+        <div v-if="activeTab === 'clients'">
+          <AdminClients :clients="clients" @refresh="fetchClients" @notify="showNotify" />
+        </div>
+      </div>
+
+      <div v-if="notification.show" class="fixed top-6 right-6 z-50 animate-bounce-in">
+        <div
           :class="[
-            'px-6 py-3 font-bold uppercase transition-colors',
-            activeTab === 'list'
-              ? 'bg-white text-emerald-800 border-t-4 border-t-emerald-600'
-              : 'text-zinc-400 hover:bg-zinc-100',
+            'pl-4 pr-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border-l-4 backdrop-blur-md',
+            notification.type === 'success'
+              ? 'bg-zinc-900/95 border-emerald-500 text-white'
+              : 'bg-zinc-900/95 border-red-500 text-white',
           ]"
         >
-          Base de Datos
-        </button>
-        <button
-          @click="activeTab = 'news'"
-          :class="[
-            'px-6 py-3 font-bold uppercase transition-colors',
-            activeTab === 'news'
-              ? 'bg-white text-emerald-800 border-t-4 border-t-emerald-600'
-              : 'text-zinc-400 hover:bg-zinc-100',
-          ]"
-        >
-          {{ editingItem ? 'Editar' : 'Nuevo Registro' }}
-        </button>
-        <button
-          @click="activeTab = 'strategy'"
-          :class="[
-            'px-6 py-3 font-bold uppercase transition-colors',
-            activeTab === 'strategy'
-              ? 'bg-white text-emerald-800 border-t-4 border-t-emerald-600'
-              : 'text-zinc-400 hover:bg-zinc-100',
-          ]"
-        >
-          Estrategia
-        </button>
-        <button
-          @click="activeTab = 'clients'"
-          :class="[
-            'px-6 py-3 font-bold uppercase transition-colors',
-            activeTab === 'clients'
-              ? 'bg-white text-emerald-800 border-t-4 border-t-emerald-600'
-              : 'text-zinc-400 hover:bg-zinc-100',
-          ]"
-        >
-          Empresas
-        </button>
-      </div>
+          <div v-if="notification.type === 'success'" class="bg-emerald-500/20 p-2 rounded-full">
+            <CheckCircle class="w-6 h-6 text-emerald-500" />
+          </div>
 
-      <div v-if="activeTab === 'list'">
-        <AdminNewsTable :news="allNews" @edit="handleEdit" @delete="handleDelete" />
-      </div>
+          <div v-else class="bg-red-500/20 p-2 rounded-full">
+            <AlertTriangle class="w-6 h-6 text-red-500" />
+          </div>
 
-      <div v-if="activeTab === 'news'">
-        <AdminNewsForm
-          :editingItem="editingItem"
-          :clientId="selectedClientId"
-          @saved="handleSaveSuccess"
-          @cancel="handleCancelEdit"
-          @notify="showNotify"
-        />
-      </div>
+          <div>
+            <h4 class="font-bold text-sm uppercase tracking-wide opacity-80">
+              {{ notification.type === 'success' ? 'Éxito' : 'Error' }}
+            </h4>
+            <p class="font-medium text-sm">{{ notification.message }}</p>
+          </div>
 
-      <div v-if="activeTab === 'strategy'">
-        <AdminStrategy :clientId="selectedClientId" @notify="showNotify" />
-      </div>
-
-      <div v-if="activeTab === 'clients'">
-        <AdminClients :clients="clients" @refresh="fetchClients" @notify="showNotify" />
-      </div>
-    </div>
-
-    <div v-if="notification.show" class="fixed top-4 right-4 z-50 animate-bounce-in">
-      <div
-        :class="[
-          'px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 text-white font-bold',
-          notification.type === 'success'
-            ? 'bg-zinc-900 border-emerald-500'
-            : 'bg-red-600 border-red-800',
-        ]"
-      >
-        <span>{{ notification.type === 'success' ? '✅' : '⚠️' }}</span>
-        <p>{{ notification.message }}</p>
+          <button
+            @click="notification.show = false"
+            class="ml-2 text-zinc-500 hover:text-white transition-colors"
+          >
+            <span class="text-xs font-bold">✕</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
