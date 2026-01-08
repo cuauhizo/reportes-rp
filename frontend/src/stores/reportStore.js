@@ -27,9 +27,7 @@ export const useReportStore = defineStore('report', () => {
     error.value = null
 
     try {
-      // Usamos variables de entorno si existen, o fallback a localhost
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
       const params = new URLSearchParams({
         clientId: currentClientId.value,
         start: filters.start,
@@ -46,17 +44,14 @@ export const useReportStore = defineStore('report', () => {
 
       const data = await response.json()
 
-      // CORRECCIÓN 1: Usar el label del filtro si existe
       const tituloReporte = filters.label || `Periodo: ${filters.start} a ${filters.end}`
 
-      // Mapeo de datos (Igual que tenías en la vista)
+      // Mapeo de datos
       reportData.value = {
         clientId: currentClientId.value,
         clientName: data.meta.client_name || 'Empresa',
         logo: data.meta.logo_url,
         period: tituloReporte,
-        // CORRECCIÓN 2: Priorizar las fechas del filtro seleccionado.
-        // Si usamos data.meta.start_date, siempre mostrará "Enero a Diciembre" aunque filtres "Febrero".
         startDate: filters.start || data.meta.start_date,
         endDate: filters.end || data.meta.end_date,
         impacts: data.kpis.total_impacts,
@@ -64,7 +59,6 @@ export const useReportStore = defineStore('report', () => {
         ave_raw: data.kpis.total_ave,
         tier1_count: data.kpis.tier1_count,
         total_notes: data.kpis.total_impacts,
-        // CORRECCIÓN 3: Guardamos la data de tendencia que YA calculó el Backend
         apiTrendData: data.trendData,
         sentiment: {
           positive: data.sentimentCounts.positive,
@@ -92,14 +86,12 @@ export const useReportStore = defineStore('report', () => {
     }
   }
 
-  // 3. Acción para cambiar cliente
   const setClient = (id) => {
     currentClientId.value = id
-    fetchReport() // Recargar datos automáticamente
+    fetchReport()
   }
 
   // --- 3. GETTERS (Computed) ---
-  // Movemos aquí la lógica de formateo para limpiar la vista
   const formattedReach = computed(() => {
     if (!reportData.value) return '0'
     return (reportData.value.reach_raw / 1000000).toFixed(1) + 'M'
@@ -115,8 +107,6 @@ export const useReportStore = defineStore('report', () => {
     return Math.round((reportData.value.tier1_count / reportData.value.total_notes) * 100)
   })
 
-  // CORRECCIÓN 4: Eliminamos la lógica de agrupación manual.
-  // Usamos directamente lo que el Backend calculó (Día vs Mes)
   const trendData = computed(() => {
     if (!reportData.value || !reportData.value.apiTrendData) return { labels: [], values: [] }
     return reportData.value.apiTrendData

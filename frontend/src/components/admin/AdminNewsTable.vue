@@ -18,18 +18,6 @@ const emit = defineEmits(['edit', 'delete', 'search', 'sort']) // Nuevos emits
 const localSearch = ref('')
 
 // Función colores (Actualizada a colores más sobrios/profesionales)
-// const getMediaTypeClass = (type) => {
-//   const styles = {
-//     'Nota': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-//     'Columna': 'bg-blue-50 text-blue-700 border-blue-200',
-//     'Entrevista': 'bg-purple-50 text-purple-700 border-purple-200',
-//     'Artículo': 'bg-amber-50 text-amber-700 border-amber-200',
-//     'Mención': 'bg-zinc-50 text-zinc-600 border-zinc-200',
-//   };
-//   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200';
-// };
-
-// Función colores (Actualizada a colores más sobrios/profesionales)
 const getMediaTypeClass = (type) => {
   const styles = {
     Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -38,21 +26,6 @@ const getMediaTypeClass = (type) => {
   }
   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200'
 }
-
-// const filteredNews = computed(() => {
-//   if (!searchQuery.value) return props.news // Si está vacío, devuelve todo
-
-//   const query = searchQuery.value.toLowerCase()
-
-//   return props.news.filter(
-//     (item) =>
-//       item.title.toLowerCase().includes(query) ||
-//       item.media_name.toLowerCase().includes(query) ||
-//       item.media_type.toLowerCase().includes(query) ||
-//       item.key_message.toLowerCase().includes(query) ||
-//       (item.reporter && item.reporter.toLowerCase().includes(query)),
-//   )
-// })
 
 // Helper para saber qué icono mostrar en el header
 const getSortIcon = (column) => {

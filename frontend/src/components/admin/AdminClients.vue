@@ -35,17 +35,14 @@ const createClient = async () => {
   }
 }
 
-// 3. FUNCIÓN PARA ABRIR EL MODAL (Reemplaza la lógica anterior)
 const deleteClient = (client) => {
   clientToDelete.value = client
   showDeleteModal.value = true
 }
 
-// 4. FUNCIÓN QUE EJECUTA EL BORRADO REAL (Se llama desde el modal)
 const executeDelete = async () => {
   if (!clientToDelete.value) return
 
-  // Cerramos el modal inmediatamente para mejor UX
   showDeleteModal.value = false
 
   try {
@@ -61,29 +58,9 @@ const executeDelete = async () => {
   }
 }
 
-// const editClient = async (client) => {
-//   const newName = prompt('Nuevo nombre para la empresa:', client.name)
-//   if (!newName || newName === client.name) return
-
-//   try {
-//     const res = await fetch(`${apiUrl}/clients/${client.id}`, {
-//       method: 'PUT',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ name: newName }),
-//     })
-//     if (res.ok) {
-//       emit('notify', 'Nombre actualizado', 'success')
-//       emit('refresh')
-//     }
-//   } catch (e) {
-//     emit('notify', 'Error', 'error')
-//   }
-// }
-
-// --- 3. NUEVA LÓGICA DE EDITAR ---
 const openEditModal = (client) => {
-  clientToEdit.value = client // Guardamos a quién editamos
-  showEditModal.value = true // Abrimos modal
+  clientToEdit.value = client
+  showEditModal.value = true
 }
 
 const executeEdit = async (newName) => {
@@ -92,7 +69,7 @@ const executeEdit = async (newName) => {
     return
   }
 
-  showEditModal.value = false // Cerramos modal
+  showEditModal.value = false
 
   try {
     const res = await fetch(`${apiUrl}/clients/${clientToEdit.value.id}`, {

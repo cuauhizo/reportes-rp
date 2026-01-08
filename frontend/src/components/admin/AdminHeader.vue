@@ -1,6 +1,5 @@
 <script setup>
 import { useRouter } from 'vue-router'
-// Importamos iconos
 import { LogOut, LayoutDashboard, Building2 } from 'lucide-vue-next'
 
 const props = defineProps(['clients', 'selectedClientId'])

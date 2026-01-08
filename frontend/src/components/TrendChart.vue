@@ -73,7 +73,7 @@ const renderChart = () => {
         {
           label: 'Impactos',
           data: props.values,
-          borderColor: '#dc2626', // Rojo Harbour
+          borderColor: '#dc2626',
           backgroundColor: (context) => {
             // Degradado bonito rojo
             const ctx = context.chart.ctx

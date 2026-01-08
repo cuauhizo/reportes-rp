@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { TIERS, SENTIMENTS, MEDIA_TYPES } from '../../utils/constants'
-// Importamos el icono de alerta
 import { AlertCircle, Edit2 } from 'lucide-vue-next'
 
 const props = defineProps(['editingItem', 'clientId'])
