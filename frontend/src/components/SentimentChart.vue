@@ -13,7 +13,7 @@ const renderChart = () => {
   myChart = new Chart(chartCanvas.value, {
     type: 'doughnut',
     data: {
-      labels: ['Positivo', 'Neutro', 'Negativo'],
+      labels: ['Positivo', 'Informativo', 'Negativo'],
       datasets: [
         {
           data: [props.positive, props.neutral, props.negative],

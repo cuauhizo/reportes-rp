@@ -47,7 +47,7 @@ exports.getReportData = async (req, res) => {
 
     const sentimentCounts = {
       positive: news.filter(n => n.sentiment === 'Positivo').length,
-      neutral: news.filter(n => n.sentiment === 'Neutro').length,
+      neutral: news.filter(n => n.sentiment === 'Informativo').length,
       negative: news.filter(n => n.sentiment === 'Negativo').length,
     }
 

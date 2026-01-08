@@ -45,7 +45,7 @@ const formatDate = (dateString) => {
                   <span
                     :class="{
                       'text-green-600': item.sentiment === 'Positivo',
-                      'text-gray-600': item.sentiment === 'Neutro',
+                      'text-gray-600': item.sentiment === 'Informativo',
                       'text-red-600': item.sentiment === 'Negativo',
                     }"
                   >
