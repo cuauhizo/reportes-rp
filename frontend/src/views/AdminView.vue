@@ -18,6 +18,7 @@ import {
   CheckCircle,
   AlertTriangle,
 } from 'lucide-vue-next'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 
 const router = useRouter()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -29,6 +30,10 @@ const editingItem = ref(null)
 const notification = ref({ show: false, message: '', type: 'success' })
 
 // --- GESTIÓN DE DATOS GLOBALES ---
+// --- 2. LÓGICA PARA MODAL DE BORRADO DE NOTICIAS ---
+const showDeleteModal = ref(false)
+const newsIdToDelete = ref(null)
+
 const store = useReportStore()
 // Usamos un "alias" para no tener que renombrar todo tu código.
 // Ahora 'selectedClientId' apunta directamente a la variable global 'currentClientId'
@@ -80,6 +85,36 @@ const handleSaveSuccess = () => {
 const handleCancelEdit = () => {
   editingItem.value = null
   activeTab.value = 'list'
+}
+
+// Esta función se activa cuando el hijo (Table) emite 'delete'
+const handleDeleteRequest = (id) => {
+  newsIdToDelete.value = id
+  showDeleteModal.value = true
+}
+
+// Esta función se ejecuta cuando el usuario dice "SÍ" en el modal
+const confirmDeleteNews = async () => {
+  if (!newsIdToDelete.value) return
+  showDeleteModal.value = false // Cerramos modal
+
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL
+    const res = await fetch(`${apiUrl}/news/${newsIdToDelete.value}`, {
+      method: 'DELETE',
+    })
+
+    if (res.ok) {
+      showNotification('Noticia eliminada correctamente', 'success')
+      fetchNews() // Recargar la tabla
+    } else {
+      showNotification('No se pudo eliminar el registro', 'error')
+    }
+  } catch (error) {
+    showNotification('Error de conexión', 'error')
+  } finally {
+    newsIdToDelete.value = null
+  }
 }
 
 // --- UTILIDADES ---
@@ -153,7 +188,15 @@ onMounted(() => {
         </div>
 
         <div v-if="activeTab === 'list'">
-          <AdminNewsTable :news="allNews" @edit="handleEdit" @delete="handleDelete" />
+          <AdminNewsTable :news="allNews" @edit="handleEdit" @delete="handleDeleteRequest" />
+          <ConfirmationModal
+            :show="showDeleteModal"
+            title="¿Eliminar Noticia?"
+            message="Estás a punto de eliminar este registro de la base de datos. Esta acción afectará los cálculos de las gráficas. ¿Deseas continuar?"
+            confirmText="Sí, Eliminar"
+            @close="showDeleteModal = false"
+            @confirm="confirmDeleteNews"
+          />
         </div>
 
         <div v-if="activeTab === 'news'">

@@ -62,7 +62,7 @@ const submit = async () => {
 </script>
 
 <template>
-  <div class="animate-fade-in space-y-8">
+  <div class="animate-fade-in space-y-2">
     <div class="flex justify-between items-center mb-6">
       <div>
         <h3 class="text-xl font-black text-zinc-800 tracking-tight">Estrategia y Contexto</h3>

@@ -1,12 +1,18 @@
 <script setup>
 import { ref } from 'vue'
-import { Plus, Trash2, Building2, Edit2 } from 'lucide-vue-next' // Iconos nuevos
+import { Plus, Trash2, Building2, Edit2 } from 'lucide-vue-next'
+import ConfirmationModal from '../ConfirmationModal.vue'
+import InputModal from '../InputModal.vue'
 
 const props = defineProps(['clients'])
 const emit = defineEmits(['notify', 'refresh'])
 const apiUrl = import.meta.env.VITE_API_URL
 const newClientName = ref('')
 const loading = ref(false)
+const showDeleteModal = ref(false)
+const clientToDelete = ref(null)
+const showEditModal = ref(false)
+const clientToEdit = ref(null)
 
 const createClient = async () => {
   if (!newClientName.value.trim()) return
@@ -29,29 +35,67 @@ const createClient = async () => {
   }
 }
 
-const deleteClient = async (client) => {
-  const confirmation = prompt(
-    `⚠️ PELIGRO ⚠️\n\nEscribe "${client.name}" para confirmar el borrado definitivo de la empresa y TODOS sus datos.`,
-  )
-  if (confirmation !== client.name) return
+// 3. FUNCIÓN PARA ABRIR EL MODAL (Reemplaza la lógica anterior)
+const deleteClient = (client) => {
+  clientToDelete.value = client
+  showDeleteModal.value = true
+}
+
+// 4. FUNCIÓN QUE EJECUTA EL BORRADO REAL (Se llama desde el modal)
+const executeDelete = async () => {
+  if (!clientToDelete.value) return
+
+  // Cerramos el modal inmediatamente para mejor UX
+  showDeleteModal.value = false
 
   try {
-    const res = await fetch(`${apiUrl}/clients/${client.id}`, { method: 'DELETE' })
+    const res = await fetch(`${apiUrl}/clients/${clientToDelete.value.id}`, { method: 'DELETE' })
     if (res.ok) {
       emit('notify', 'Empresa eliminada', 'success')
       emit('refresh')
     }
   } catch (e) {
-    emit('notify', 'Error', 'error')
+    emit('notify', 'Error al eliminar', 'error')
+  } finally {
+    clientToDelete.value = null
   }
 }
 
-const editClient = async (client) => {
-  const newName = prompt('Nuevo nombre para la empresa:', client.name)
-  if (!newName || newName === client.name) return
+// const editClient = async (client) => {
+//   const newName = prompt('Nuevo nombre para la empresa:', client.name)
+//   if (!newName || newName === client.name) return
+
+//   try {
+//     const res = await fetch(`${apiUrl}/clients/${client.id}`, {
+//       method: 'PUT',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ name: newName }),
+//     })
+//     if (res.ok) {
+//       emit('notify', 'Nombre actualizado', 'success')
+//       emit('refresh')
+//     }
+//   } catch (e) {
+//     emit('notify', 'Error', 'error')
+//   }
+// }
+
+// --- 3. NUEVA LÓGICA DE EDITAR ---
+const openEditModal = (client) => {
+  clientToEdit.value = client // Guardamos a quién editamos
+  showEditModal.value = true // Abrimos modal
+}
+
+const executeEdit = async (newName) => {
+  if (!clientToEdit.value || newName === clientToEdit.value.name) {
+    showEditModal.value = false
+    return
+  }
+
+  showEditModal.value = false // Cerramos modal
 
   try {
-    const res = await fetch(`${apiUrl}/clients/${client.id}`, {
+    const res = await fetch(`${apiUrl}/clients/${clientToEdit.value.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newName }),
@@ -61,7 +105,9 @@ const editClient = async (client) => {
       emit('refresh')
     }
   } catch (e) {
-    emit('notify', 'Error', 'error')
+    emit('notify', 'Error al actualizar', 'error')
+  } finally {
+    clientToEdit.value = null
   }
 }
 </script>
@@ -120,7 +166,7 @@ const editClient = async (client) => {
             class="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           >
             <button
-              @click="editClient(c)"
+              @click="openEditModal(c)"
               class="p-2 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="Renombrar"
             >
@@ -137,5 +183,23 @@ const editClient = async (client) => {
         </li>
       </ul>
     </div>
+    <ConfirmationModal
+      :show="showDeleteModal"
+      title="¿Eliminar Empresa?"
+      :message="`Estás a punto de eliminar a '${clientToDelete?.name}'. Esto borrará también todos sus reportes y noticias asociadas. ¿Estás seguro?`"
+      confirmText="Sí, Eliminar"
+      @close="showDeleteModal = false"
+      @confirm="executeDelete"
+    />
+
+    <InputModal
+      :show="showEditModal"
+      title="Renombrar Empresa"
+      :initialValue="clientToEdit?.name"
+      placeholder="Nuevo nombre..."
+      confirmText="Actualizar Nombre"
+      @close="showEditModal = false"
+      @confirm="executeEdit"
+    />
   </div>
 </template>
