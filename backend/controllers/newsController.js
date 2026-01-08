@@ -1,12 +1,67 @@
 const pool = require('../config/db')
-
-// Obtener TODAS las noticias (Para la tabla de Admin)
+// Obtener todas las noticias con paginación, búsqueda y ordenamiento
 exports.getAllNews = async (req, res) => {
   try {
-    const [news] = await pool.query('SELECT * FROM news_items ORDER BY publication_date DESC')
-    res.json(news)
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const search = req.query.search || ''
+    const sortBy = req.query.sortBy || 'publication_date'
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC'
+    const clientId = req.query.clientId
+
+    if (!clientId) {
+      return res.json({ data: [], pagination: { page, limit, totalItems: 0, totalPages: 0 } })
+    }
+
+    const offset = (page - 1) * limit
+
+    const allowedSortColumns = ['publication_date', 'reach', 'ave_value', 'title', 'media_name', 'reporter']
+    const validSortBy = allowedSortColumns.includes(sortBy) ? `n.${sortBy}` : 'n.publication_date'
+
+    let whereClause = 'WHERE r.client_id = ?'
+    const queryParams = [clientId]
+
+    if (search) {
+      whereClause += ' AND (n.title LIKE ? OR n.media_name LIKE ? OR n.key_message LIKE ? OR n.reporter LIKE ?)'
+      const term = `%${search}%`
+      queryParams.push(term, term, term, term)
+    }
+
+    const dataQuery = `
+        SELECT n.* FROM news_items n
+        JOIN reports r ON n.report_id = r.id
+        ${whereClause}
+        ORDER BY ${validSortBy} ${order} 
+        LIMIT ? OFFSET ?
+    `
+
+    const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM news_items n
+        JOIN reports r ON n.report_id = r.id
+        ${whereClause}
+    `
+
+    const finalParams = [...queryParams, limit, offset]
+
+    const [news] = await pool.query(dataQuery, finalParams)
+    const [countResult] = await pool.query(countQuery, queryParams)
+
+    const totalItems = countResult[0].total
+    const totalPages = Math.ceil(totalItems / limit)
+
+    res.json({
+      data: news,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+      },
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener noticias', error })
+    console.error(error)
+    res.status(500).json({ message: 'Error al obtener noticias' })
   }
 }
 
@@ -15,10 +70,8 @@ exports.createNews = async (req, res) => {
   try {
     const { clientId, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
 
-    // --- 1. VALIDACIONES ---
     const errors = []
 
-    // 1. Buscamos el reporte ID asociado a ese cliente
     const [reports] = await pool.query('SELECT id FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
 
     if (reports.length === 0) {
@@ -27,17 +80,14 @@ exports.createNews = async (req, res) => {
 
     const reportId = reports[0].id
 
-    // Validar campos obligatorios
     if (!media_name || media_name.trim() === '') errors.push('El nombre del medio es obligatorio.')
     if (!title || title.trim() === '') errors.push('El titular es obligatorio.')
     if (!key_message || key_message.trim() === '') errors.push('El mensaje clave es obligatorio.')
     if (!publication_date) errors.push('La fecha de publicación es obligatoria.')
 
-    // Validar tipos de datos (Números)
     if (reach && isNaN(reach)) errors.push('El Alcance debe ser un número válido.')
     if (ave_value && isNaN(ave_value)) errors.push('El Valor (AVE) debe ser un número válido.')
 
-    // Si hay errores, devolvemos 400 (Bad Request) y NO guardamos nada
     if (errors.length > 0) {
       return res.status(400).json({
         message: 'Error de validación',
@@ -45,13 +95,11 @@ exports.createNews = async (req, res) => {
       })
     }
 
-    // --- 2. LOGICA DE GUARDADO ---
     const query = `
             INSERT INTO news_items 
             (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-    // Aseguramos que los números sean números (parse)
     const safeReach = Number(reach) || 0
     const safeAve = Number(ave_value) || 0
 
@@ -84,7 +132,7 @@ exports.updateNews = async (req, res) => {
   }
 }
 
-// ELIMINAR NOTICIA
+// Eliminar una noticia
 exports.deleteNews = async (req, res) => {
   try {
     const { id } = req.params

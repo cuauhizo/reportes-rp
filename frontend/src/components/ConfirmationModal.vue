@@ -1,5 +1,6 @@
 <script setup>
 import { AlertTriangle, X } from 'lucide-vue-next'
+import { onMounted, onUnmounted } from 'vue'
 
 defineProps({
   show: Boolean,
@@ -11,6 +12,12 @@ defineProps({
 })
 
 const emit = defineEmits(['close', 'confirm'])
+
+const closeOnEsc = (e) => {
+  if (e.key === 'Escape') emit('close')
+}
+onMounted(() => window.addEventListener('keydown', closeOnEsc))
+onUnmounted(() => window.removeEventListener('keydown', closeOnEsc))
 </script>
 
 <template>

@@ -166,7 +166,7 @@ onMounted(() => {
             <div
               v-for="note in topNotes"
               :key="note.id"
-              class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-red-600 hover:-translate-y-1 transition-transform"
+              class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-red-600"
             >
               <p class="font-black text-[10px] text-zinc-400 mb-1 tracking-widest uppercase">
                 {{ note.media_name }}
@@ -269,7 +269,7 @@ onMounted(() => {
 
         <router-link
           to="/admin"
-          class="group bg-zinc-900 hover:bg-black text-white font-bold py-4 px-8 rounded-xl shadow-xl shadow-zinc-200 transition-all hover:-translate-y-1 active:translate-y-0 flex items-center gap-3"
+          class="group bg-zinc-900 hover:bg-black text-white font-bold py-4 px-8 rounded-xl shadow-xl shadow-zinc-200 transition-all active:translate-y-0 flex items-center gap-3"
         >
           <div class="bg-white/20 p-1 rounded-lg group-hover:bg-white/30 transition-colors">
             <Plus class="w-5 h-5" />

@@ -31,9 +31,7 @@ const formatDate = (dateString) => {
           </div>
 
           <div class="w-full md:w-1/2 pl-12">
-            <div
-              class="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-600 transition-transform hover:-translate-y-1"
-            >
+            <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-600">
               <p class="text-sm font-bold text-zinc-900 mb-2 italic">"{{ item.title }}"</p>
 
               <div

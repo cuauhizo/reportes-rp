@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import { Edit3, X } from 'lucide-vue-next'
+import { onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   show: Boolean,
@@ -33,6 +34,12 @@ const handleConfirm = () => {
   if (!inputValue.value.trim()) return
   emit('confirm', inputValue.value)
 }
+
+const closeOnEsc = (e) => {
+  if (e.key === 'Escape') emit('close')
+}
+onMounted(() => window.addEventListener('keydown', closeOnEsc))
+onUnmounted(() => window.removeEventListener('keydown', closeOnEsc))
 </script>
 
 <template>

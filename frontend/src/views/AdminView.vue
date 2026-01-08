@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-// 1. IMPORTAR LA STORE Y PINIA
 import { useReportStore } from '../stores/reportStore'
 import { storeToRefs } from 'pinia'
 import AdminHeader from '../components/admin/AdminHeader.vue'
@@ -19,24 +18,34 @@ import {
   AlertTriangle,
 } from 'lucide-vue-next'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
+import Pagination from '../components/admin/Pagination.vue'
+import debounce from 'lodash.debounce'
 
 const router = useRouter()
 const apiUrl = import.meta.env.VITE_API_URL
 const activeTab = ref('list')
 const clients = ref([])
-// const selectedClientId = ref(1)
 const allNews = ref([])
+const loading = ref(false)
+const newsList = ref([])
 const editingItem = ref(null)
 const notification = ref({ show: false, message: '', type: 'success' })
 
+// ESTADO DE FILTROS
+const searchQuery = ref('')
+const sortBy = ref('publication_date')
+const sortOrder = ref('desc') // 'asc' o 'desc'
+
+// ESTADO DE PAGINACIÓN
+const currentPage = ref(1)
+const totalPages = ref(1)
+const itemsPerPage = 10
+
 // --- GESTIÓN DE DATOS GLOBALES ---
-// --- 2. LÓGICA PARA MODAL DE BORRADO DE NOTICIAS ---
 const showDeleteModal = ref(false)
 const newsIdToDelete = ref(null)
 
 const store = useReportStore()
-// Usamos un "alias" para no tener que renombrar todo tu código.
-// Ahora 'selectedClientId' apunta directamente a la variable global 'currentClientId'
 const { currentClientId: selectedClientId } = storeToRefs(store)
 
 const fetchClients = async () => {
@@ -48,14 +57,53 @@ const fetchClients = async () => {
   }
 }
 
-const fetchNews = async () => {
+const fetchNews = async (page = 1) => {
+  loading.value = true
   try {
-    const res = await fetch(`${apiUrl}/report?clientId=${selectedClientId.value}`)
-    const data = await res.json()
-    allNews.value = data.news || []
+    const apiUrl = import.meta.env.VITE_API_URL
+
+    const params = new URLSearchParams({
+      clientId: selectedClientId.value,
+      page: page,
+      limit: itemsPerPage,
+      search: searchQuery.value,
+      sortBy: sortBy.value,
+      order: sortOrder.value,
+    })
+
+    const res = await fetch(`${apiUrl}/news?${params}`)
+    const result = await res.json()
+
+    newsList.value = result.data
+    currentPage.value = result.pagination.page
+    totalPages.value = result.pagination.totalPages
   } catch (e) {
-    allNews.value = []
+    showNotification('Error al cargar noticias', 'error')
+  } finally {
+    loading.value = false
   }
+}
+
+// MANEJO DE BÚSQUEDA (Con Debounce de 500ms)
+const handleSearch = debounce((query) => {
+  searchQuery.value = query
+  fetchNews(1)
+}, 500)
+
+// MANEJO DE CAMBIO DE PÁGINA
+const handlePageChange = (newPage) => {
+  fetchNews(newPage)
+}
+
+// MANEJO DE ORDENAMIENTO (Lo llamará la tabla)
+const handleSort = (column) => {
+  if (sortBy.value === column) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = column
+    sortOrder.value = 'desc'
+  }
+  fetchNews(1)
 }
 
 // --- ACCIONES ---
@@ -63,17 +111,6 @@ const fetchNews = async () => {
 const handleEdit = (item) => {
   editingItem.value = item
   activeTab.value = 'news'
-}
-
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar registro?')) return
-  try {
-    await fetch(`${apiUrl}/news/${id}`, { method: 'DELETE' })
-    showNotify('Registro eliminado', 'success')
-    fetchNews()
-  } catch (e) {
-    showNotify('Error', 'error')
-  }
 }
 
 const handleSaveSuccess = () => {
@@ -87,16 +124,14 @@ const handleCancelEdit = () => {
   activeTab.value = 'list'
 }
 
-// Esta función se activa cuando el hijo (Table) emite 'delete'
 const handleDeleteRequest = (id) => {
   newsIdToDelete.value = id
   showDeleteModal.value = true
 }
 
-// Esta función se ejecuta cuando el usuario dice "SÍ" en el modal
 const confirmDeleteNews = async () => {
   if (!newsIdToDelete.value) return
-  showDeleteModal.value = false // Cerramos modal
+  showDeleteModal.value = false
 
   try {
     const apiUrl = import.meta.env.VITE_API_URL
@@ -106,7 +141,7 @@ const confirmDeleteNews = async () => {
 
     if (res.ok) {
       showNotification('Noticia eliminada correctamente', 'success')
-      fetchNews() // Recargar la tabla
+      fetchNews()
     } else {
       showNotification('No se pudo eliminar el registro', 'error')
     }
@@ -124,10 +159,14 @@ const showNotify = (msg, type) => {
 }
 
 // --- INIT ---
-watch(selectedClientId, fetchNews)
+watch(selectedClientId, () => {
+  searchQuery.value = ''
+  fetchNews(1)
+})
+
 onMounted(() => {
   fetchClients()
-  fetchNews()
+  fetchNews(1)
 })
 </script>
 
@@ -188,7 +227,23 @@ onMounted(() => {
         </div>
 
         <div v-if="activeTab === 'list'">
-          <AdminNewsTable :news="allNews" @edit="handleEdit" @delete="handleDeleteRequest" />
+          <AdminNewsTable
+            v-if="activeTab === 'list'"
+            :news="newsList"
+            :sort-by="sortBy"
+            :sort-order="sortOrder"
+            @search="handleSearch"
+            @sort="handleSort"
+            @edit="handleEdit"
+            @delete="handleDeleteRequest"
+          />
+
+          <Pagination
+            v-if="activeTab === 'list' && newsList.length > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            @change-page="handlePageChange"
+          />
           <ConfirmationModal
             :show="showDeleteModal"
             title="¿Eliminar Noticia?"

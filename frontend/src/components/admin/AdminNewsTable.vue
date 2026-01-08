@@ -1,10 +1,21 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { Search, Edit2, Trash2, Calendar, Hash, ExternalLink } from 'lucide-vue-next'
+import { ref, computed, watch } from 'vue'
+import {
+  Search,
+  Edit2,
+  Trash2,
+  Calendar,
+  Hash,
+  ExternalLink,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-vue-next'
 
-const props = defineProps(['news'])
-const emit = defineEmits(['edit', 'delete'])
-const searchQuery = ref('')
+// Props actualizados
+const props = defineProps(['news', 'sortBy', 'sortOrder'])
+const emit = defineEmits(['edit', 'delete', 'search', 'sort']) // Nuevos emits
+
+const localSearch = ref('')
 
 // Función colores (Actualizada a colores más sobrios/profesionales)
 // const getMediaTypeClass = (type) => {
@@ -28,20 +39,26 @@ const getMediaTypeClass = (type) => {
   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200'
 }
 
-const filteredNews = computed(() => {
-  if (!searchQuery.value) return props.news // Si está vacío, devuelve todo
+// const filteredNews = computed(() => {
+//   if (!searchQuery.value) return props.news // Si está vacío, devuelve todo
 
-  const query = searchQuery.value.toLowerCase()
+//   const query = searchQuery.value.toLowerCase()
 
-  return props.news.filter(
-    (item) =>
-      item.title.toLowerCase().includes(query) ||
-      item.media_name.toLowerCase().includes(query) ||
-      item.media_type.toLowerCase().includes(query) ||
-      item.key_message.toLowerCase().includes(query) ||
-      (item.reporter && item.reporter.toLowerCase().includes(query)),
-  )
-})
+//   return props.news.filter(
+//     (item) =>
+//       item.title.toLowerCase().includes(query) ||
+//       item.media_name.toLowerCase().includes(query) ||
+//       item.media_type.toLowerCase().includes(query) ||
+//       item.key_message.toLowerCase().includes(query) ||
+//       (item.reporter && item.reporter.toLowerCase().includes(query)),
+//   )
+// })
+
+// Helper para saber qué icono mostrar en el header
+const getSortIcon = (column) => {
+  if (props.sortBy !== column) return null
+  return props.sortOrder === 'asc' ? ArrowUp : ArrowDown
+}
 
 // Función para formatear fecha (dd/mm/aaaa)
 const formatDate = (dateString) => {
@@ -55,6 +72,11 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (val) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val)
+
+// Cuando el usuario escribe, emitimos al padre (AdminView)
+watch(localSearch, (val) => {
+  emit('search', val)
+})
 </script>
 
 <template>
@@ -63,14 +85,11 @@ const formatCurrency = (val) =>
       <div class="relative w-full md:w-96">
         <Search class="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
         <input
-          v-model="searchQuery"
+          v-model="localSearch"
           type="text"
-          placeholder="Buscar noticia, medio, tema..."
-          class="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+          placeholder="Buscar en servidor (Enter para buscar)..."
+          class="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
         />
-      </div>
-      <div class="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-        {{ filteredNews.length }} Registros
       </div>
     </div>
 
@@ -78,21 +97,59 @@ const formatCurrency = (val) =>
       <table class="w-full text-left border-collapse">
         <thead class="bg-zinc-50 text-zinc-500 font-bold text-[10px] uppercase tracking-wider">
           <tr>
-            <th class="p-4 w-10 text-center">#</th>
-            <th class="p-4 w-32">Fecha</th>
+            <th class="p-4 text-center">#</th>
+
+            <th
+              class="p-4 cursor-pointer hover:bg-zinc-100 transition-colors select-none"
+              @click="emit('sort', 'publication_date')"
+            >
+              <div class="flex items-center gap-1">
+                Fecha
+                <component :is="getSortIcon('publication_date')" class="w-3 h-3 text-red-500" />
+              </div>
+            </th>
+
             <th class="p-4">Titular / Tema</th>
             <th class="p-4">Medio</th>
-            <th class="p-4">Reportero</th>
+            <th
+              class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
+              @click="emit('sort', 'reach')"
+            >
+              <div class="flex items-center justify-end gap-1">
+                Reportero
+                <component :is="getSortIcon('reach')" class="w-3 h-3 text-red-500" />
+              </div>
+            </th>
             <th class="p-4 text-center">Tipo</th>
-            <th class="p-4 text-right">Alcance</th>
-            <th class="p-4 text-right">AVE</th>
+
+            <th
+              class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
+              @click="emit('sort', 'report')"
+            >
+              <div class="flex items-center justify-end gap-1">
+                Alcance
+                <component :is="getSortIcon('report')" class="w-3 h-3 text-red-500" />
+              </div>
+            </th>
+
+            <th
+              class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
+              @click="emit('sort', 'ave_value')"
+            >
+              <div class="flex items-center justify-end gap-1">
+                AVE
+                <component :is="getSortIcon('ave_value')" class="w-3 h-3 text-red-500" />
+              </div>
+            </th>
+
             <th class="p-4 text-center">Sentimiento</th>
-            <th class="p-4 text-center w-24">Acciones</th>
+            <th class="p-4 text-center">Acciones</th>
           </tr>
         </thead>
+
         <tbody class="divide-y divide-zinc-100 text-xs text-zinc-700">
           <tr
-            v-for="(item, index) in filteredNews"
+            v-for="(item, index) in props.news"
             :key="item.id"
             class="hover:bg-zinc-50 transition-colors group"
           >
@@ -106,9 +163,9 @@ const formatCurrency = (val) =>
                 {{ item.title }}
               </div>
               <div
-                class="inline-flex items-center text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
+                class="inline-flex items-center gap-1 text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
               >
-                <Hash class="w-3 h-3" />{{ item.key_message }}
+                <Hash class="w-3 h-3" /> {{ item.key_message }}
               </div>
             </td>
 
@@ -168,11 +225,10 @@ const formatCurrency = (val) =>
               </div>
             </td>
           </tr>
-          <tr v-if="filteredNews.length === 0">
-            <td colspan="11" class="p-8 text-center text-zinc-400 italic">
-              {{
-                searchQuery ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros.'
-              }}
+
+          <tr v-if="props.news.length === 0">
+            <td colspan="10" class="p-8 text-center text-zinc-400 italic">
+              No se encontraron resultados.
             </td>
           </tr>
         </tbody>
