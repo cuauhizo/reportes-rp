@@ -20,7 +20,7 @@ defineProps({
 </script>
 
 <template>
-  <section>
+  <section class="no-break">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600">
         <p class="text-zinc-500 font-bold text-xs uppercase">Impactos</p>

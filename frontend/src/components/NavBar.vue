@@ -107,7 +107,7 @@ watch([selectedMonth, selectedQuarter, selectedYear], () => {
 </script>
 
 <template>
-  <nav class="flex flex-col xl:flex-row items-center justify-center gap-4 mb-8">
+  <nav class="flex flex-col xl:flex-row items-center justify-center gap-4">
     <div class="bg-zinc-900 p-1.5 rounded-2xl shadow-md border border-zinc-800">
       <select
         :value="currentClientId"

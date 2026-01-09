@@ -77,17 +77,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f4f4f5] pb-20 font-sans text-zinc-800">
-    <div id="dashboard-content">
+  <div class="min-h-screen bg-[#f4f4f5] font-sans text-zinc-800">
+    <div id="dashboard-content" class="bg-[#f4f4f5] print:bg-white h-auto w-full relative overflow-hidden">
       <header
-        class="bg-gradient-to-r from-black via-zinc-900 to-red-900 text-white py-12 px-6 shadow-2xl mb-8 relative overflow-hidden"
+        class="bg-gradient-to-r from-black via-zinc-900 to-red-900 text-white shadow-none mb-0 relative overflow-hidden no-break h-[228px] flex flex-col justify-end pb-12 px-6"
       >
         <div
+          data-html2canvas-ignore="true"
           class="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none"
         ></div>
-        <div
-          class="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row justify-between items-end"
-        >
+        <div class="max-w-7xl mx-auto relative z-10 flex flex-row justify-between items-end w-full">
           <div>
             <p class="text-red-500 font-bold tracking-widest uppercase text-xs mb-2">
               Análisis Estratégico
@@ -134,7 +133,7 @@ onMounted(() => {
           </div>
         </div>
       </header>
-      <div class="max-w-7xl mx-auto px-4 -mt-6 mb-8 relative z-20 no-print">
+      <div class="max-w-7xl mx-auto px-4 mt-6 relative z-20 no-print">
         <NavBar @filter="fetchReport" />
       </div>
 
@@ -144,7 +143,7 @@ onMounted(() => {
 
       <div
         v-else-if="reportData && reportData.news && reportData.news.length > 0"
-        class="max-w-7xl mx-auto px-4 md:px-8 space-y-16"
+        class="max-w-7xl mx-auto px-4 mt-8 md:px-8 space-y-16 mb-5"
       >
         <KpiCards
           :impacts="reportData.impacts"
@@ -153,8 +152,8 @@ onMounted(() => {
           :tier1-percentage="tier1Percentage"
         />
 
-        <section v-if="topNotes.length > 0">
-          <div class="mb-6">
+        <section v-if="topNotes.length > 0" class="">
+          <div class="mb-6 print:mb-10">
             <h2
               class="text-2xl font-bold border-l-4 border-red-600 pl-4 uppercase tracking-tighter text-white bg-black inline-block px-4 py-1"
             >
@@ -208,7 +207,7 @@ onMounted(() => {
 
         <DistributionCharts :news="reportData.news" />
 
-        <section>
+        <section class="no-break">
           <div class="text-center mb-10">
             <h2
               class="text-2xl font-black uppercase tracking-tighter text-white bg-black inline-block px-6 py-2 transform -skew-x-12"
@@ -220,7 +219,7 @@ onMounted(() => {
         </section>
 
         <section
-          class="bg-black rounded-[2.5rem] p-8 md:p-16 relative border-t-8 border-red-600 overflow-hidden shadow-2xl"
+          class="bg-black rounded-[2.5rem] p-8 md:p-16 relative border-t-8 border-red-600 overflow-hidden shadow-2xl no-break"
         >
           <div
             class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-red-900/20 to-transparent pointer-events-none"
@@ -280,3 +279,12 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style>
+/* Forzamos que al generar el PDF, el header no intente expandirse */
+#dashboard-content header {
+  box-shadow: none !important; /* Elimina cualquier sombra residual */
+  background-size: cover !important; /* Evita repeticiones extrañas del degradado */
+  page-break-after: avoid !important; /* Intenta pegar el contenido siguiente */
+}
+</style>

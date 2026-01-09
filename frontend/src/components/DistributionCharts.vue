@@ -75,7 +75,7 @@ const barOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { disp
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 no-break">
     <div class="space-y-8">
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
         <h3 class="text-sm font-bold uppercase mb-4 text-zinc-800">Distribución por Tier</h3>
@@ -130,5 +130,5 @@ const barOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { disp
         <Bar :data="messageData" :options="barOptions" />
       </div>
     </div>
-  </div>
+  </section>
 </template>

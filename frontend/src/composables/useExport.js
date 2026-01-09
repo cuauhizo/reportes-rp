@@ -42,12 +42,16 @@ export function useExport() {
     }
 
     const opt = {
-      // margin: [10, 10], // Margenes (top, left) en mm
       margin: [0, 0], // Margenes (top, left) en mm
       filename: fileName,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false }, // Scale 2 mejora la calidad
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      // 👇 AQUÍ ESTÁ LA MAGIA DE TU IMAGEN
+      pagebreak: {
+        mode: ['avoid-all', 'css', 'legacy'], // Evita cortar elementos y respeta CSS
+        avoid: '.no-break', // Evitará cortar cualquier cosa que tenga esta clase
+      },
     }
 
     // Generar PDF
