@@ -219,13 +219,9 @@ onMounted(() => {
         </section>
 
         <section
-          class="bg-black rounded-[2.5rem] p-8 md:p-16 relative border-t-8 border-red-600 overflow-hidden shadow-2xl no-break"
+          class="bg-black rounded-[2.5rem] p-8 md:p-16 print:p-6 relative border-t-8 border-red-600 overflow-hidden shadow-2xl no-break"
         >
-          <div
-            class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-red-900/20 to-transparent pointer-events-none"
-          ></div>
-
-          <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
+          <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
               <h2 class="text-3xl font-black mb-8 uppercase tracking-tighter text-white">
                 FODA <span class="text-red-600">Mediático</span>

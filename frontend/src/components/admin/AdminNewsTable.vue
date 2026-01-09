@@ -136,7 +136,7 @@ watch(localSearch, (val) => {
                 {{ item.title }}
               </div>
               <div
-                class="inline-flex items-center gap-1 text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
+                class="inline-flex items-center text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
               >
                 <Hash class="w-3 h-3" /> {{ item.key_message }}
               </div>

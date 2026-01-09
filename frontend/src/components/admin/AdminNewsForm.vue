@@ -96,10 +96,10 @@ const submit = async () => {
 </script>
 
 <template>
-  <div class="bg-zinc-50 p-8 animate-fade-in">
+  <div class=" p-8 animate-fade-in">
     <div
       v-if="editingItem"
-      class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 flex justify-between rounded"
+      class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 flex justify-between items-center rounded"
     >
       <p class="text-blue-800 font-bold">
         <Edit2 class="w-4 h-4 inline-block" /> Editando registro #{{ editingItem.id }}
@@ -114,7 +114,7 @@ const submit = async () => {
 
     <form
       @submit.prevent="submit"
-      class="bg-white p-6 rounded-xl shadow-sm border border-zinc-200 space-y-6 max-w-5xl mx-auto"
+      class="bg-zinc-50 p-6 rounded-xl shadow-sm border border-zinc-200 space-y-6 max-w-5xl mx-auto"
     >
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
