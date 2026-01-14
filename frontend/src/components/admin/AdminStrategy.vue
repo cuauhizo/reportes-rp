@@ -63,7 +63,7 @@ const submit = async () => {
 
 <template>
   <div class="animate-fade-in space-y-2">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row justify-between gap-4 items-center mb-6">
       <div>
         <h3 class="text-xl font-black text-zinc-800 tracking-tight">Estrategia y Contexto</h3>
         <p class="text-sm text-zinc-500">Define los pilares estratégicos para el reporte anual.</p>

@@ -89,7 +89,9 @@ onMounted(() => {
           data-html2canvas-ignore="true"
           class="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none"
         ></div>
-        <div class="max-w-7xl mx-auto relative z-10 flex flex-row justify-between items-end w-full">
+        <div
+          class="max-w-7xl mx-auto relative z-10 flex flex-col sm:flex-row justify-between items-center w-full"
+        >
           <div>
             <p class="text-red-500 font-bold tracking-widest uppercase text-xs mb-2">
               Análisis Estratégico
