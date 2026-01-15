@@ -180,7 +180,7 @@ onMounted(() => {
           <button
             @click="activeTab = 'list'"
             :class="[
-              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              'whitespace-nowrap flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
               activeTab === 'list'
                 ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
                 : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
@@ -192,7 +192,7 @@ onMounted(() => {
           <button
             @click="activeTab = 'news'"
             :class="[
-              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              'whitespace-nowrap flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
               activeTab === 'news'
                 ? 'bg-red-600 text-white border-red-600 shadow-lg'
                 : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
@@ -204,7 +204,7 @@ onMounted(() => {
           <button
             @click="activeTab = 'strategy'"
             :class="[
-              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              'whitespace-nowrap flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
               activeTab === 'strategy'
                 ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
                 : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
@@ -216,7 +216,7 @@ onMounted(() => {
           <button
             @click="activeTab = 'clients'"
             :class="[
-              'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
+              'whitespace-nowrap flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase transition-all border',
               activeTab === 'clients'
                 ? 'bg-zinc-900 text-white border-zinc-900 shadow-lg'
                 : 'bg-white text-zinc-500 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300',
