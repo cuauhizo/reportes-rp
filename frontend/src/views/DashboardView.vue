@@ -20,8 +20,8 @@ const {
   reportData,
   loading,
   currentClientId,
-  formattedReach,
-  formattedAve,
+  totalReach,
+  totalAve,
   tier1Percentage,
   trendData,
   topNotes,
@@ -152,11 +152,10 @@ onMounted(() => {
       >
         <KpiCards
           :impacts="reportData.impacts"
-          :reach="formattedReach"
-          :ave="formattedAve"
+          :reach="totalReach"
+          :ave="totalAve"
           :tier1-percentage="tier1Percentage"
         />
-
         <section v-if="topNotes.length > 0" class="">
           <div class="mb-6 print:mb-10">
             <h2
@@ -200,7 +199,7 @@ onMounted(() => {
           </div>
           <div class="bg-white p-8 rounded-2xl shadow-sm border border-zinc-200">
             <h3 class="text-lg font-bold mb-6 text-zinc-900 border-l-4 border-red-600 pl-3">
-              Salud de Marca
+              Tono de las notas
             </h3>
             <SentimentChart
               :positive="reportData.sentiment.positive"
@@ -217,7 +216,7 @@ onMounted(() => {
             <h2
               class="text-2xl font-black uppercase tracking-tighter text-white bg-black inline-block px-6 py-2 transform -skew-x-12"
             >
-              <span class="transform skew-x-12 block">Detalle de Impactos</span>
+              <span class="transform skew-x-12 block">Hitos correspondientes </span>
             </h2>
           </div>
           <NewsTimeline :items="reportData.news" />

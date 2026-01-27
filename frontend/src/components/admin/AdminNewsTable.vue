@@ -23,6 +23,7 @@ const getMediaTypeClass = (type) => {
     Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     Impreso: 'bg-blue-50 text-blue-700 border-blue-200',
     'Radio/TV': 'bg-amber-50 text-amber-700 border-amber-200',
+    'Redes Sociales': 'bg-purple-100 text-purple-800 border-purple-200',
   }
   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200'
 }
@@ -82,14 +83,14 @@ watch(localSearch, (val) => {
               </div>
             </th>
 
-            <th class="p-4">Titular / Tema</th>
+            <th class="p-4">Titular / Acción con medios</th>
             <th class="p-4">Medio</th>
             <th
               class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
               @click="emit('sort', 'reach')"
             >
               <div class="flex items-center justify-end gap-1">
-                Reportero
+                Vocero
                 <component :is="getSortIcon('reach')" class="w-3 h-3 text-red-500" />
               </div>
             </th>

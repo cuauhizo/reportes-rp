@@ -20,19 +20,52 @@ export const useReportStore = defineStore('report', () => {
     }
   }
 
-  const fetchReport = async (
-    filters = { start: '2025-01-01', end: '2025-12-31', label: 'Reporte Anual 2025' },
-  ) => {
+  // 1. HELPER PARA OBTENER FECHAS DEL MES ACTUAL
+  const getCurrentMonthFilters = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const monthIdx = now.getMonth()
+    const month = String(monthIdx + 1).padStart(2, '0')
+
+    // Último día del mes actual
+    const lastDay = new Date(year, monthIdx + 1, 0).getDate()
+
+    const monthNames = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ]
+
+    return {
+      start: `${year}-${month}-01`,
+      end: `${year}-${month}-${lastDay}`,
+      label: `Reporte Mensual - ${monthNames[monthIdx]} ${year}`,
+    }
+  }
+
+  const fetchReport = async (filters = null) => {
     loading.value = true
     error.value = null
+
+    // Si no llegan filtros (ej. al cambiar cliente), usamos el mes actual
+    const activeFilters = filters || getCurrentMonthFilters()
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
       const params = new URLSearchParams({
         clientId: currentClientId.value,
-        start: filters.start,
-        end: filters.end,
-        label: filters.label,
+        start: activeFilters.start,
+        end: activeFilters.end,
+        label: activeFilters.label,
       })
 
       const response = await fetch(`${apiUrl}/report?${params}`)
@@ -44,7 +77,9 @@ export const useReportStore = defineStore('report', () => {
 
       const data = await response.json()
 
-      const tituloReporte = filters.label || `Periodo: ${filters.start} a ${filters.end}`
+      // Usamos activeFilters, que ya garantizamos que nunca sea null
+      const tituloReporte =
+        activeFilters.label || `Periodo: ${activeFilters.start} a ${activeFilters.end}`
 
       // Mapeo de datos
       reportData.value = {
@@ -52,8 +87,8 @@ export const useReportStore = defineStore('report', () => {
         clientName: data.meta.client_name || 'Empresa',
         logo: data.meta.logo_url,
         period: tituloReporte,
-        startDate: filters.start || data.meta.start_date,
-        endDate: filters.end || data.meta.end_date,
+        startDate: activeFilters.start || data.meta.start_date,
+        endDate: activeFilters.end || data.meta.end_date,
         impacts: data.kpis.total_impacts,
         reach_raw: data.kpis.total_reach,
         ave_raw: data.kpis.total_ave,
@@ -92,6 +127,14 @@ export const useReportStore = defineStore('report', () => {
   }
 
   // --- 3. GETTERS (Computed) ---
+  const totalReach = computed(() => {
+    return reportData.value ? reportData.value.reach_raw : 0
+  })
+
+  const totalAve = computed(() => {
+    return reportData.value ? reportData.value.ave_raw : 0
+  })
+
   const formattedReach = computed(() => {
     if (!reportData.value) return '0'
     return (reportData.value.reach_raw / 1000000).toFixed(1) + 'M'
@@ -134,5 +177,7 @@ export const useReportStore = defineStore('report', () => {
     tier1Percentage,
     trendData,
     topNotes,
+    totalReach,
+    totalAve,
   }
 })
