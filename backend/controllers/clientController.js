@@ -2,7 +2,7 @@ const pool = require('../config/db')
 
 exports.getClients = async (req, res) => {
   try {
-    const [clients] = await pool.query('SELECT id, name, logo_url FROM clients')
+    const [clients] = await pool.query('SELECT id, name, logo_url, monthly_goal FROM clients')
     res.json(clients)
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener clientes', error })
@@ -36,15 +36,80 @@ exports.createClient = async (req, res) => {
 }
 
 // EDITAR CLIENTE
+exports.updateClient_old = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, monthly_goal } = req.body
+
+    // Validación básica: Debe haber al menos un dato para actualizar
+    if (!name && monthly_goal === undefined) {
+      return res.status(400).json({ message: 'No se enviaron datos para actualizar' })
+    }
+
+    // --- CONSTRUCCIÓN DINÁMICA DE LA CONSULTA ---
+    // Esto asegura que solo actualicemos lo que nos llegó
+    let fields = []
+    let values = []
+
+    if (name) {
+      fields.push('name = ?')
+      values.push(name)
+    }
+
+    // Verificamos si monthly_goal NO es undefined (puede ser 0, y eso es válido)
+    if (monthly_goal !== undefined) {
+      fields.push('monthly_goal = ?')
+      values.push(monthly_goal)
+    }
+
+    values.push(id) // Agregamos el ID al final para el WHERE
+
+    const query = `UPDATE clients SET ${fields.join(', ')} WHERE id = ?`
+
+    await pool.query(query, values)
+
+    res.json({ message: 'Cliente actualizado' })
+  } catch (error) {
+    console.error(error) // Importante para ver errores en consola
+    res.status(500).json({ message: 'Error al actualizar', error })
+  }
+}
+
 exports.updateClient = async (req, res) => {
   try {
     const { id } = req.params
-    const { name } = req.body
-    if (!name) return res.status(400).json({ message: 'Nombre requerido' })
+    const { name, monthly_goal } = req.body
 
-    await pool.query('UPDATE clients SET name = ? WHERE id = ?', [name, id])
-    res.json({ message: 'Cliente actualizado' })
+    // 1. Actualizar Nombre (si viene)
+    if (name) {
+      await pool.query('UPDATE clients SET name = ? WHERE id = ?', [name, id])
+    }
+
+    // 2. Actualizar Meta (Lógica Histórica)
+    if (monthly_goal !== undefined) {
+      // A. Actualizamos el "actual" en la tabla clients por compatibilidad rápida
+      await pool.query('UPDATE clients SET monthly_goal = ? WHERE id = ?', [monthly_goal, id])
+
+      // B. INSERTAMOS en el historial
+      // Usamos el primer día del mes actual para que aplique a todo el reporte de este mes
+      const today = new Date()
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+
+      // Verificamos si ya existe una meta para este mes exacto para no duplicar, sino actualizar
+      const [existing] = await pool.query('SELECT id FROM client_goals WHERE client_id = ? AND valid_from = ?', [id, firstDayOfMonth])
+
+      if (existing.length > 0) {
+        // Si ya cambiaron la meta este mismo mes, actualizamos ese registro
+        await pool.query('UPDATE client_goals SET goal = ? WHERE id = ?', [monthly_goal, existing[0].id])
+      } else {
+        // Si es un mes nuevo, creamos registro nuevo
+        await pool.query('INSERT INTO client_goals (client_id, goal, valid_from) VALUES (?, ?, ?)', [id, monthly_goal, firstDayOfMonth])
+      }
+    }
+
+    res.json({ message: 'Cliente actualizado correctamente' })
   } catch (error) {
+    console.error(error)
     res.status(500).json({ message: 'Error al actualizar' })
   }
 }

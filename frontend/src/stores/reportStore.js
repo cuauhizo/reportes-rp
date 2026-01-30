@@ -90,6 +90,7 @@ export const useReportStore = defineStore('report', () => {
         startDate: activeFilters.start || data.meta.start_date,
         endDate: activeFilters.end || data.meta.end_date,
         impacts: data.kpis.total_impacts,
+        monthly_goal: data.kpis.monthly_goal || 0,
         reach_raw: data.kpis.total_reach,
         ave_raw: data.kpis.total_ave,
         tier1_count: data.kpis.tier1_count,

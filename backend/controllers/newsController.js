@@ -68,7 +68,10 @@ exports.getAllNews = async (req, res) => {
 // Crear una nueva noticia
 exports.createNews = async (req, res) => {
   try {
-    const { clientId, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
+    const { clientId, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured } = req.body
+
+    // Si req.file existe, guardamos la ruta. Si no, null.
+    const fileUrl = req.file ? `/uploads/${req.file.filename}` : null
 
     const errors = []
 
@@ -96,14 +99,14 @@ exports.createNews = async (req, res) => {
     }
 
     const query = `
-            INSERT INTO news_items 
-            (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            INSERT INTO news_items
+            (report_id, publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured, file_url )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
     const safeReach = Number(reach) || 0
     const safeAve = Number(ave_value) || 0
 
-    const [result] = await pool.query(query, [reportId, publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message])
+    const [result] = await pool.query(query, [reportId, publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message, link, spokesperson, is_featured ? 1 : 0, fileUrl])
 
     res.status(201).json({ message: 'Noticia guardada con éxito', id: result.insertId })
   } catch (error) {
@@ -116,14 +119,24 @@ exports.createNews = async (req, res) => {
 exports.updateNews = async (req, res) => {
   try {
     const { id } = req.params
-    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message } = req.body
+    const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured } = req.body
 
-    const query = `
-            UPDATE news_items 
-            SET publication_date=?, media_name=?, reporter=?, title=?, reach=?, ave_value=?, tier=?, sentiment=?, media_type=?, key_message=?
-            WHERE id = ?`
+    let query = `
+      UPDATE news_items 
+      SET publication_date=?, media_name=?, reporter=?, title=?, reach=?, ave_value=?, tier=?, sentiment=?, media_type=?, key_message=?, link=?, spokesperson=?, is_featured=?`
 
-    const [result] = await pool.query(query, [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, id])
+    const params = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured ? 1 : 0]
+
+    // 👇 LÓGICA CONDICIONAL DE IMAGEN
+    if (req.file) {
+      query += `, file_url=?` // Solo si hay archivo nuevo, actualizamos el campo
+      params.push(`/uploads/${req.file.filename}`)
+    }
+
+    query += ` WHERE id = ?`
+    params.push(id)
+
+    const [result] = await pool.query(query, params)
 
     if (result.affectedRows === 0) return res.status(404).json({ message: 'Noticia no encontrada' })
     res.json({ message: 'Noticia actualizada' })

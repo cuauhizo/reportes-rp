@@ -7,6 +7,7 @@ import {
   Calendar,
   Hash,
   ExternalLink,
+  Star,
   ArrowUp,
   ArrowDown,
 } from 'lucide-vue-next'
@@ -84,16 +85,19 @@ watch(localSearch, (val) => {
             </th>
 
             <th class="p-4">Titular / Acción con medios</th>
+            <th class="p-4 text-center"><Star class="w-4 h-4 mx-auto" /></th>
+            <th class="p-4 text-center">Link</th>
             <th class="p-4">Medio</th>
             <th
               class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
               @click="emit('sort', 'reach')"
             >
               <div class="flex items-center justify-end gap-1">
-                Vocero
+                Reportero
                 <component :is="getSortIcon('reach')" class="w-3 h-3 text-red-500" />
               </div>
             </th>
+            <th class="p-4">Vocero</th>
             <th class="p-4 text-center">Tipo</th>
 
             <th
@@ -142,10 +146,31 @@ watch(localSearch, (val) => {
                 <Hash class="w-3 h-3" /> {{ item.key_message }}
               </div>
             </td>
+            <td class="p-4 text-center">
+              <Star
+                v-if="item.is_featured"
+                class="w-4 h-4 text-yellow-500 mx-auto"
+                fill="currentColor"
+              />
+              <span v-else class="text-zinc-200">-</span>
+            </td>
+            <td class="p-4 text-center">
+              <a
+                v-if="item.link"
+                :href="item.link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center p-2 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                title="Ver noticia original"
+              >
+                <ExternalLink class="w-4 h-4" />
+              </a>
+              <span v-else class="text-zinc-300">-</span>
+            </td>
 
             <td class="p-4 font-bold text-zinc-800">{{ item.media_name }}</td>
             <td class="p-4 text-zinc-800">{{ item.reporter || '-' }}</td>
-
+            <td class="p-4 text-zinc-600 font-medium">{{ item.spokesperson || '-' }}</td>
             <td class="p-4 text-center">
               <span
                 :class="[

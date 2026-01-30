@@ -1,19 +1,29 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { TIERS, SENTIMENTS, MEDIA_TYPES } from '../../utils/constants'
-import { AlertCircle, Edit2 } from 'lucide-vue-next'
+import { AlertCircle, Edit2, Star } from 'lucide-vue-next'
 
 const props = defineProps(['editingItem', 'clientId'])
 const emit = defineEmits(['saved', 'cancel', 'notify'])
 const apiUrl = import.meta.env.VITE_API_URL
 const loading = ref(false)
 const fieldErrors = ref({})
+// Variable reactiva para el archivo
+const selectedFile = ref(null)
+
+// Manejar selección
+const handleFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) selectedFile.value = file
+}
 
 // Modelo inicial
 const defaultForm = {
   publication_date: new Date().toISOString().split('T')[0],
   media_name: '',
   reporter: '',
+  spokesperson: '',
+  is_featured: false,
   title: '',
   reach: 0,
   ave_value: 0,
@@ -21,6 +31,7 @@ const defaultForm = {
   sentiment: 'Positivo',
   media_type: 'Digital',
   key_message: '',
+  link: '',
 }
 
 const form = ref({ ...defaultForm })
@@ -67,6 +78,22 @@ const submit = async () => {
   }
   loading.value = true
 
+  // 👇 USAMOS FORMDATA PARA ENVIAR ARCHIVOS
+  const formData = new FormData()
+
+  // Agregamos todos los campos normales
+  Object.keys(form.value).forEach((key) => {
+    // Evitamos enviar nulls que rompan el form
+    formData.append(key, form.value[key] !== null ? form.value[key] : '')
+  })
+
+  formData.append('clientId', props.clientId)
+
+  // Agregamos el archivo si existe
+  if (selectedFile.value) {
+    formData.append('file', selectedFile.value)
+  }
+
   try {
     const isEditing = !!props.editingItem
     const url = isEditing ? `${apiUrl}/news/${props.editingItem.id}` : `${apiUrl}/news`
@@ -75,8 +102,7 @@ const submit = async () => {
 
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: formData,
     })
 
     if (res.ok) {
@@ -126,7 +152,9 @@ const submit = async () => {
           />
         </div>
         <div>
-          <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1">Tema</label>
+          <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1"
+            >Acción con medios</label
+          >
           <input
             v-model="form.key_message"
             type="text"
@@ -185,6 +213,14 @@ const submit = async () => {
           />
         </div>
         <div>
+          <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1">Vocero</label>
+          <input
+            v-model="form.spokesperson"
+            type="text"
+            class="w-full bg-white border border-zinc-300 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all shadow-sm placeholder-zinc-400"
+          />
+        </div>
+        <div>
           <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1"
             >Sentimiento</label
           >
@@ -195,15 +231,38 @@ const submit = async () => {
             <option v-for="s in SENTIMENTS" :key="s" :value="s">{{ s }}</option>
           </select>
         </div>
-      </div>
 
+        <div class="md:col-span-2">
+          <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1"
+            >Testigo (Titular)</label
+          >
+          <input
+            v-model="form.title"
+            type="text"
+            :class="[
+              'w-full bg-white border rounded-lg px-4 py-2.5 text-sm font-medium outline-none transition-all shadow-sm placeholder-zinc-400',
+              fieldErrors.title
+                ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-500'
+                : 'border-zinc-300 focus:ring-2 focus:ring-red-500 focus:border-red-500',
+            ]"
+          />
+          <p
+            v-if="fieldErrors.title"
+            class="flex items-center gap-1 text-red-600 text-xs font-bold mt-1 animate-pulse"
+          >
+            <AlertCircle class="w-3 h-3" /> Este campo es obligatorio
+          </p>
+        </div>
+      </div>
       <div>
         <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1"
-          >Testigo (Titular)</label
+          >Enlace de la noticia</label
         >
+
         <input
-          v-model="form.title"
-          type="text"
+          v-model="form.link"
+          type="url"
+          placeholder="https://..."
           :class="[
             'w-full bg-white border rounded-lg px-4 py-2.5 text-sm font-medium outline-none transition-all shadow-sm placeholder-zinc-400',
             fieldErrors.title
@@ -211,11 +270,20 @@ const submit = async () => {
               : 'border-zinc-300 focus:ring-2 focus:ring-red-500 focus:border-red-500',
           ]"
         />
-        <p
-          v-if="fieldErrors.title"
-          class="flex items-center gap-1 text-red-600 text-xs font-bold mt-1 animate-pulse"
+      </div>
+
+      <div class="col-span-1 md:col-span-3">
+        <label class="block font-bold text-[10px] uppercase text-zinc-500 mb-1"
+          >Evidencia (Imagen o PDF)</label
         >
-          <AlertCircle class="w-3 h-3" /> Este campo es obligatorio
+        <input
+          type="file"
+          @change="handleFileChange"
+          accept="image/*,application/pdf"
+          class="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 cursor-pointer"
+        />
+        <p v-if="editingItem?.file_url" class="text-[10px] text-emerald-600 mt-1">
+          Ya hay un archivo cargado. Sube otro solo si quieres reemplazarlo.
         </p>
       </div>
 
@@ -257,6 +325,31 @@ const submit = async () => {
         </div>
       </div>
 
+      <div class="flex items-center gap-3 bg-zinc-100 p-3 rounded-lg border border-zinc-200">
+        <button
+          type="button"
+          @click="form.is_featured = !form.is_featured"
+          :class="[
+            'p-2 rounded-full transition-all border',
+            form.is_featured
+              ? 'bg-yellow-100 text-yellow-500 border-yellow-300 shadow-sm'
+              : 'bg-white text-zinc-300 border-zinc-200 hover:text-zinc-400',
+          ]"
+        >
+          <Star class="w-6 h-6" :fill="form.is_featured ? 'currentColor' : 'none'" />
+        </button>
+        <div>
+          <p
+            class="text-xs font-bold uppercase text-zinc-700 select-none cursor-pointer"
+            @click="form.is_featured = !form.is_featured"
+          >
+            Marcar como Destacada
+          </p>
+          <p class="text-[10px] text-zinc-500">
+            Aparecerá en la línea de tiempo de reportes largos (Trimestral/Anual).
+          </p>
+        </div>
+      </div>
       <div class="pt-4 border-t flex justify-end">
         <button
           type="submit"

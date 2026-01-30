@@ -4,7 +4,8 @@ import { Layers, Activity, DollarSign, Award, ArrowUpRight, ArrowDownRight } fro
 
 const props = defineProps({
   impacts: { type: Number, default: 0 },
-  reach: { type: Number, default: 0 },
+  goal: { type: Number, default: 0 },
+  reach: { type: [Number, String], default: 0 },
   ave: { type: Number, default: 0 },
   tier1Percentage: { type: Number, default: 0 },
 })
@@ -43,6 +44,12 @@ const formatSmartNumber = (num, isCurrency = false) => {
   return isCurrency ? `$${formattedValue}${suffix}` : `${formattedValue}${suffix}`
 }
 
+// Calculamos el porcentaje de cumplimiento
+const goalProgress = computed(() => {
+  if (!props.goal || props.goal === 0) return 0
+  return Math.round((props.impacts / props.goal) * 100)
+})
+
 // Computed properties para usar en el template
 const formattedReach = computed(() => formatSmartNumber(props.reach))
 const formattedAve = computed(() => formatSmartNumber(props.ave, true)) // true = es dinero
@@ -53,9 +60,32 @@ const formattedImpacts = computed(() => props.impacts.toLocaleString()) // Los i
   <section class="no-break">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600">
-        <p class="text-zinc-500 font-bold text-xs uppercase">Impactos</p>
-        <div class="text-4xl font-black mt-2 text-zinc-800">
-          {{ impacts }}
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Impactos</p>
+          <h3 class="text-4xl font-black text-zinc-900 tracking-tight">{{ formattedImpacts }}</h3>
+
+          <div v-if="goal > 0" class="mt-2 flex items-center text-xs font-bold">
+            <span
+              :class="goalProgress >= 100 ? 'text-emerald-600' : 'text-amber-600'"
+              class="bg-zinc-100 px-1.5 py-0.5 rounded mr-1"
+            >
+              {{ goalProgress }}%
+            </span>
+            <span class="text-zinc-400 font-medium">vs meta ({{ goal }})</span>
+          </div>
+
+          <div v-else class="mt-2 flex items-center text-xs font-medium text-emerald-600">
+            <ArrowUpRight class="w-3 h-3 mr-1" />
+            <span>Notas en periodo</span>
+          </div>
+        </div>
+
+        <div class="h-1 w-full bg-zinc-100 mt-4 rounded-full overflow-hidden">
+          <div
+            class="h-full rounded-full transition-all duration-1000"
+            :class="goalProgress >= 100 ? 'bg-emerald-500' : 'bg-red-600'"
+            :style="`width: ${Math.min(goalProgress, 100)}%`"
+          ></div>
         </div>
       </div>
 
@@ -73,7 +103,7 @@ const formattedImpacts = computed(() => props.impacts.toLocaleString()) // Los i
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-zinc-900">
+      <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-600">
         <p class="text-zinc-500 font-bold text-xs uppercase">% Medios Tier 1</p>
         <div class="text-4xl font-black text-zinc-800 mt-2">{{ tier1Percentage }}%</div>
 

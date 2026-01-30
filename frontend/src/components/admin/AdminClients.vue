@@ -87,6 +87,23 @@ const executeEdit = async (newName) => {
     clientToEdit.value = null
   }
 }
+
+// Función rápida para actualizar solo la meta sin abrir el modal
+const updateGoal = async (client) => {
+  try {
+    await fetch(`${apiUrl}/clients/${client.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: client.name,
+        monthly_goal: client.monthly_goal,
+      }),
+    })
+    emit('notify', 'Meta actualizada', 'success')
+  } catch (e) {
+    emit('notify', 'Error al guardar meta', 'error')
+  }
+}
 </script>
 
 <template>
@@ -130,13 +147,22 @@ const executeEdit = async (newName) => {
           :key="c.id"
           class="group bg-white p-4 rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all flex justify-between items-center"
         >
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 w-full sm:w-auto">
             <div
               class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-zinc-400 group-hover:bg-red-50 group-hover:text-red-500 transition-colors"
             >
               {{ c.name.charAt(0).toUpperCase() }}
             </div>
             <span class="font-bold text-zinc-800 text-lg">{{ c.name }}</span>
+            <div class="flex items-center gap-2 mt-1 text-xs text-zinc-500">
+              <span>Meta Mensual:</span>
+              <input
+                type="number"
+                v-model="c.monthly_goal"
+                @change="updateGoal(c)"
+                class="w-16 border border-zinc-300 rounded px-1 py-0.5 text-center font-bold focus:border-red-500 outline-none"
+              />
+            </div>
           </div>
 
           <div

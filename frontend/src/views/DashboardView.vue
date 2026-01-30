@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useReportStore } from '../stores/reportStore'
 import { storeToRefs } from 'pinia'
 import { useExport } from '../composables/useExport'
@@ -68,6 +68,35 @@ const formatDateHeader = (dateStr) => {
 
   return `${day} de ${months[parseInt(month) - 1]} de ${year}`
 }
+
+// 👇 PROPIEDAD COMPUTADA PARA FILTRAR EL TIMELINE
+const timelineItems = computed(() => {
+  if (!reportData.value || !reportData.value.news) return []
+
+  const allNews = reportData.value.news
+
+  // 1. Calculamos duración en días aproximada
+  const start = new Date(reportData.value.startDate)
+  const end = new Date(reportData.value.endDate)
+  const diffDays = (end - start) / (1000 * 60 * 60 * 24)
+
+  // 2. Definimos qué es "Largo Plazo" (ej: más de 45 días = Trimestral/Anual)
+  const isLongTerm = diffDays > 45
+
+  // 3. Filtramos
+  if (isLongTerm) {
+    // Solo mostramos las que tienen la estrellita (is_featured === 1)
+    const featured = allNews.filter((n) => n.is_featured)
+
+    // FALLBACK DE SEGURIDAD:
+    // Si el usuario olvidó destacar noticias, mostramos todas (o las top 10)
+    // para que el timeline no salga vacío.
+    return featured.length > 0 ? featured : allNews
+  }
+
+  // Si es mensual, mostramos todo el detalle
+  return allNews
+})
 
 onMounted(() => {
   if (!reportData.value || reportData.value.clientId !== currentClientId.value) {
@@ -152,6 +181,7 @@ onMounted(() => {
       >
         <KpiCards
           :impacts="reportData.impacts"
+          :goal="reportData.monthly_goal"
           :reach="totalReach"
           :ave="totalAve"
           :tier1-percentage="tier1Percentage"
@@ -219,7 +249,8 @@ onMounted(() => {
               <span class="transform skew-x-12 block">Hitos correspondientes </span>
             </h2>
           </div>
-          <NewsTimeline :items="reportData.news" />
+          <!-- <NewsTimeline :items="reportData.news" /> -->
+          <NewsTimeline :items="timelineItems" />
         </section>
 
         <section
