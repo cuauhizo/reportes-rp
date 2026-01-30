@@ -7,9 +7,7 @@ defineProps({
   },
 })
 
-const apiUrl = import.meta.env.VITE_API_URL.replace('/api', '') // Base URL para las imágenes
-// Esto asume que tu API es .../api. Las imágenes están en .../uploads.
-// Ajusta según tu dominio real.
+const apiUrl = import.meta.env.VITE_API_URL
 
 const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'long', day: 'numeric' }

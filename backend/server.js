@@ -18,7 +18,7 @@ const clientRoutes = require('./routes/clientRoutes')
 app.use('/api/report', reportRoutes)
 app.use('/api/news', newsRoutes)
 app.use('/api/clients', clientRoutes)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Servidor
 const PORT = process.env.PORT || 3000
