@@ -145,9 +145,10 @@ const updateGoal = async (client) => {
         <li
           v-for="c in clients"
           :key="c.id"
-          class="group bg-white p-4 rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all flex justify-between items-center"
+          class="group bg-white p-4 rounded-xl border border-zinc-200 shadow-sm gap-4 hover:shadow-md transition-all flex justify-between items-center flex-col sm:flex-row sm:gap-0"
         >
           <div class="flex items-center gap-3 w-full sm:w-auto">
+            <div class="flex flex-col gap-1 sm:items-center sm:gap-3 sm:flex-row">
             <div
               class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-zinc-400 group-hover:bg-red-50 group-hover:text-red-500 transition-colors"
             >
@@ -162,6 +163,7 @@ const updateGoal = async (client) => {
                 @change="updateGoal(c)"
                 class="w-16 border border-zinc-300 rounded px-1 py-0.5 text-center font-bold focus:border-red-500 outline-none"
               />
+            </div>
             </div>
           </div>
 

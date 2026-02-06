@@ -73,6 +73,9 @@ exports.createNews = async (req, res) => {
     // Si req.file existe, guardamos la ruta. Si no, null.
     const fileUrl = req.file ? `/uploads/${req.file.filename}` : null
 
+    // Convertimos a booleano real comparando con los strings posibles
+    const isFeaturedBoolean = (is_featured === 'true' || is_featured === '1' || is_featured === true)
+
     const errors = []
 
     const [reports] = await pool.query('SELECT id FROM reports WHERE client_id = ? ORDER BY id DESC LIMIT 1', [clientId])
@@ -106,7 +109,7 @@ exports.createNews = async (req, res) => {
     const safeReach = Number(reach) || 0
     const safeAve = Number(ave_value) || 0
 
-    const [result] = await pool.query(query, [reportId, publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message, link, spokesperson, is_featured ? 1 : 0, fileUrl])
+    const [result] = await pool.query(query, [reportId, publication_date, media_name, reporter, title, safeReach, safeAve, tier, sentiment, media_type, key_message, link, spokesperson, isFeaturedBoolean ? 1 : 0, fileUrl])
 
     res.status(201).json({ message: 'Noticia guardada con éxito', id: result.insertId })
   } catch (error) {
@@ -121,11 +124,14 @@ exports.updateNews = async (req, res) => {
     const { id } = req.params
     const { publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured } = req.body
 
+    // 👇 Interpretación estricta igual que arriba
+    const isFeaturedBoolean = (is_featured === 'true' || is_featured === '1' || is_featured === true)
+
     let query = `
       UPDATE news_items 
       SET publication_date=?, media_name=?, reporter=?, title=?, reach=?, ave_value=?, tier=?, sentiment=?, media_type=?, key_message=?, link=?, spokesperson=?, is_featured=?`
 
-    const params = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, is_featured ? 1 : 0]
+    const params = [publication_date, media_name, reporter, title, reach, ave_value, tier, sentiment, media_type, key_message, link, spokesperson, isFeaturedBoolean ? 1 : 0]
 
     // 👇 LÓGICA CONDICIONAL DE IMAGEN
     if (req.file) {
