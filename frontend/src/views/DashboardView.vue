@@ -279,7 +279,7 @@ onMounted(() => {
 
       <div
         v-else
-        class="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-zinc-200 rounded-[2.5rem] bg-zinc-50/50 mx-4 md:mx-auto max-w-5xl md:m-8"
+        class="flex flex-col items-center justify-center px-4 py-24 text-center border-2 border-dashed border-zinc-200 rounded-[2.5rem] bg-zinc-50/50 mx-4 max-w-5xl m-8 md:px-0 lg:mx-auto"
       >
         <div class="bg-white p-6 rounded-full shadow-sm mb-6">
           <FileSearch class="w-16 h-16 text-zinc-300" stroke-width="1.5" />

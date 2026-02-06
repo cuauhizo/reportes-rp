@@ -6,7 +6,7 @@ import Responsive from '@/components/responsive.vue'
 <template>
   <main>
     <RouterView />
-    <Responsive />
+    <!-- <Responsive /> -->
   </main>
 </template>
 
