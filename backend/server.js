@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const path = require('path')
 require('dotenv').config() // Cargar variables de entorno
 
 const app = express()
@@ -17,6 +18,7 @@ const clientRoutes = require('./routes/clientRoutes')
 app.use('/api/report', reportRoutes)
 app.use('/api/news', newsRoutes)
 app.use('/api/clients', clientRoutes)
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Servidor
 const PORT = process.env.PORT || 3000

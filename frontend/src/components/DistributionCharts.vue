@@ -35,7 +35,7 @@ const tierData = computed(() => {
 // --- 2. Lógica para Tipo de Medio (Barras Simples) ---
 const mediaTypeData = computed(() => {
   const total = props.news.length || 1
-  const counts = { Digital: 0, Impreso: 0, 'Radio/TV': 0 }
+  const counts = { Digital: 0, Impreso: 0, 'Radio/TV': 0, 'Redes Sociales': 0 }
   props.news.forEach((n) => {
     if (counts[n.media_type] !== undefined) counts[n.media_type]++
   })
@@ -44,6 +44,7 @@ const mediaTypeData = computed(() => {
     digital: Math.round((counts['Digital'] / total) * 100),
     print: Math.round((counts['Impreso'] / total) * 100),
     broadcast: Math.round((counts['Radio/TV'] / total) * 100),
+    social: Math.round((counts['Redes Sociales'] / total) * 100),
   }
 })
 
@@ -71,7 +72,46 @@ const messageData = computed(() => {
   }
 })
 
-const barOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+// const barOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+const barOptions = {
+  indexAxis: 'y',
+  responsive: true,
+  maintainAspectRatio: false, // Importante para que respete el h-64 de tu contenedor
+  plugins: {
+    legend: {
+      display: false,
+    },
+  },
+  scales: {
+    x: {
+      // Configuración del Título del Eje
+      title: {
+        display: true,
+        text: 'Número de Notas', // <--- TU LABEL AQUÍ
+        color: '#a1a1aa', // Color gris (zinc-400) para que no robe atención
+        font: {
+          size: 10,
+          weight: 'bold',
+          family: 'sans-serif',
+        },
+        padding: { top: 10 }, // Un poco de aire arriba
+      },
+      ticks: {
+        stepSize: 1, // <--- ESTO ES LA CLAVE: Salta de 1 en 1
+        precision: 0, // Asegura que no muestre decimales
+      },
+      grid: {
+        color: '#f4f4f5', // Opcional: Color de la rejilla suave
+        borderDash: [5, 5], // Opcional: Rejilla punteada estilo moderno
+      },
+    },
+    y: {
+      grid: {
+        display: false, // Oculta la rejilla en los nombres de las categorías para limpiar
+      },
+    },
+  },
+}
 </script>
 
 <template>
@@ -117,6 +157,18 @@ const barOptions = { indexAxis: 'y', responsive: true, plugins: { legend: { disp
               <div
                 class="bg-red-600 h-full rounded-full"
                 :style="{ width: mediaTypeData.broadcast + '%' }"
+              ></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1">
+              <span>Redes Sociales</span>
+              <span>{{ mediaTypeData.social }}%</span>
+            </div>
+            <div class="w-full bg-zinc-800 rounded-full h-2">
+              <div
+                class="bg-white h-2 rounded-full transition-all duration-1000"
+                :style="`width: ${mediaTypeData.social}%`"
               ></div>
             </div>
           </div>

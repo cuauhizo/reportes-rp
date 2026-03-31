@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useReportStore } from '../stores/reportStore'
 import { storeToRefs } from 'pinia'
 import { useExport } from '../composables/useExport'
@@ -20,8 +20,8 @@ const {
   reportData,
   loading,
   currentClientId,
-  formattedReach,
-  formattedAve,
+  totalReach,
+  totalAve,
   tier1Percentage,
   trendData,
   topNotes,
@@ -68,6 +68,35 @@ const formatDateHeader = (dateStr) => {
 
   return `${day} de ${months[parseInt(month) - 1]} de ${year}`
 }
+
+// 👇 PROPIEDAD COMPUTADA PARA FILTRAR EL TIMELINE
+const timelineItems = computed(() => {
+  if (!reportData.value || !reportData.value.news) return []
+
+  const allNews = reportData.value.news
+
+  // 1. Calculamos duración en días aproximada
+  const start = new Date(reportData.value.startDate)
+  const end = new Date(reportData.value.endDate)
+  const diffDays = (end - start) / (1000 * 60 * 60 * 24)
+
+  // 2. Definimos qué es "Largo Plazo" (ej: más de 45 días = Trimestral/Anual)
+  const isLongTerm = diffDays > 45
+
+  // 3. Filtramos
+  if (isLongTerm) {
+    // Solo mostramos las que tienen la estrellita (is_featured === 1)
+    const featured = allNews.filter((n) => n.is_featured)
+
+    // FALLBACK DE SEGURIDAD:
+    // Si el usuario olvidó destacar noticias, mostramos todas (o las top 10)
+    // para que el timeline no salga vacío.
+    return featured.length > 0 ? featured : allNews
+  }
+
+  // Si es mensual, mostramos todo el detalle
+  return allNews
+})
 
 onMounted(() => {
   if (!reportData.value || reportData.value.clientId !== currentClientId.value) {
@@ -152,11 +181,11 @@ onMounted(() => {
       >
         <KpiCards
           :impacts="reportData.impacts"
-          :reach="formattedReach"
-          :ave="formattedAve"
+          :goal="reportData.monthly_goal"
+          :reach="totalReach"
+          :ave="totalAve"
           :tier1-percentage="tier1Percentage"
         />
-
         <section v-if="topNotes.length > 0" class="">
           <div class="mb-6 print:mb-10">
             <h2
@@ -200,7 +229,7 @@ onMounted(() => {
           </div>
           <div class="bg-white p-8 rounded-2xl shadow-sm border border-zinc-200">
             <h3 class="text-lg font-bold mb-6 text-zinc-900 border-l-4 border-red-600 pl-3">
-              Salud de Marca
+              Tono de las notas
             </h3>
             <SentimentChart
               :positive="reportData.sentiment.positive"
@@ -217,10 +246,11 @@ onMounted(() => {
             <h2
               class="text-2xl font-black uppercase tracking-tighter text-white bg-black inline-block px-6 py-2 transform -skew-x-12"
             >
-              <span class="transform skew-x-12 block">Detalle de Impactos</span>
+              <span class="transform skew-x-12 block">Hitos correspondientes </span>
             </h2>
           </div>
-          <NewsTimeline :items="reportData.news" />
+          <!-- <NewsTimeline :items="reportData.news" /> -->
+          <NewsTimeline :items="timelineItems" />
         </section>
 
         <section
@@ -249,7 +279,7 @@ onMounted(() => {
 
       <div
         v-else
-        class="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-zinc-200 rounded-[2.5rem] bg-zinc-50/50 mx-4 md:mx-auto max-w-5xl md:m-8"
+        class="flex flex-col items-center justify-center px-4 py-24 text-center border-2 border-dashed border-zinc-200 rounded-[2.5rem] bg-zinc-50/50 mx-4 max-w-5xl m-8 md:px-0 lg:mx-auto"
       >
         <div class="bg-white p-6 rounded-full shadow-sm mb-6">
           <FileSearch class="w-16 h-16 text-zinc-300" stroke-width="1.5" />

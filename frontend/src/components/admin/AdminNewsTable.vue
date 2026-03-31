@@ -7,6 +7,7 @@ import {
   Calendar,
   Hash,
   ExternalLink,
+  Star,
   ArrowUp,
   ArrowDown,
 } from 'lucide-vue-next'
@@ -23,6 +24,7 @@ const getMediaTypeClass = (type) => {
     Digital: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     Impreso: 'bg-blue-50 text-blue-700 border-blue-200',
     'Radio/TV': 'bg-amber-50 text-amber-700 border-amber-200',
+    'Redes Sociales': 'bg-purple-100 text-purple-800 border-purple-200',
   }
   return styles[type] || 'bg-gray-50 text-gray-600 border-gray-200'
 }
@@ -82,7 +84,9 @@ watch(localSearch, (val) => {
               </div>
             </th>
 
-            <th class="p-4">Titular / Tema</th>
+            <th class="p-4">Titular / Acción con medios</th>
+            <th class="p-4 text-center"><Star class="w-4 h-4 mx-auto" /></th>
+            <!-- <th class="p-4 text-center">Link</th> -->
             <th class="p-4">Medio</th>
             <th
               class="p-4 text-right cursor-pointer hover:bg-zinc-100 transition-colors select-none"
@@ -93,6 +97,7 @@ watch(localSearch, (val) => {
                 <component :is="getSortIcon('reach')" class="w-3 h-3 text-red-500" />
               </div>
             </th>
+            <th class="p-4">Vocero</th>
             <th class="p-4 text-center">Tipo</th>
 
             <th
@@ -126,7 +131,11 @@ watch(localSearch, (val) => {
             :key="item.id"
             class="hover:bg-zinc-50 transition-colors group"
           >
-            <td class="p-4 text-center text-zinc-400 font-mono">{{ index + 1 }}</td>
+            <td class="p-4 text-center- text-zinc-400 font-mono">
+              <!-- <pre>{{ item }}</pre> -->
+              <!-- {{ index + 1 }} -->
+              {{ item.id }}
+            </td>
             <td class="p-4 font-medium text-zinc-500 whitespace-nowrap">
               {{ formatDate(item.publication_date) }}
             </td>
@@ -135,16 +144,50 @@ watch(localSearch, (val) => {
               <div class="font-bold text-zinc-900 truncate mb-1" :title="item.title">
                 {{ item.title }}
               </div>
+              <div class="flex justify-between">
               <div
                 class="inline-flex items-center text-[10px] text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded"
               >
                 <Hash class="w-3 h-3" /> {{ item.key_message }}
               </div>
+              <a
+                v-if="item.link"
+                :href="item.link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center p-2 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                title="Ver noticia original"
+              >
+                <ExternalLink class="w-4 h-4" />
+              </a>
+              <span v-else class="text-zinc-300">-</span>
+              </div>
             </td>
+            <td class="p-4 text-center">
+              <Star
+                v-if="item.is_featured"
+                class="w-4 h-4 text-yellow-500 mx-auto"
+                fill="currentColor"
+              />
+              <span v-else class="text-zinc-200">-</span>
+            </td>
+            <!-- <td class="p-4 text-center">
+              <a
+                v-if="item.link"
+                :href="item.link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center p-2 bg-zinc-100 text-zinc-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                title="Ver noticia original"
+              >
+                <ExternalLink class="w-4 h-4" />
+              </a>
+              <span v-else class="text-zinc-300">-</span>
+            </td> -->
 
             <td class="p-4 font-bold text-zinc-800">{{ item.media_name }}</td>
             <td class="p-4 text-zinc-800">{{ item.reporter || '-' }}</td>
-
+            <td class="p-4 text-zinc-600 font-medium">{{ item.spokesperson || '-' }}</td>
             <td class="p-4 text-center">
               <span
                 :class="[

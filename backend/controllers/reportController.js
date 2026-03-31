@@ -1,16 +1,17 @@
 const pool = require('../config/db')
 
 // Obtener Reporte con Filtros y KPIs calculados
+// Obtener Reporte con Filtros y KPIs calculados
 exports.getReportData = async (req, res) => {
   try {
     const { start, end, label, clientId = 1 } = req.query
 
     console.log(`--- SOLICITUD REPORTE CLIENTE ${clientId} ---`)
-    console.log('Filtros recibidos:', { start, end, label })
 
     // 1. Buscar el reporte del cliente
+    // (Nota: Quitamos c.monthly_goal de aquí porque ahora usamos la tabla histórica)
     const query = `
-            SELECT r.*, c.name as client_name, c.logo_url 
+            SELECT r.*, c.name as client_name, c.logo_url
             FROM reports r 
             JOIN clients c ON r.client_id = c.id 
             WHERE r.client_id = ? 
@@ -37,9 +38,60 @@ exports.getReportData = async (req, res) => {
 
     const [news] = await pool.query(newsQuery, newsParams)
 
-    // 3. KPIs
+    // --- 3. LÓGICA DE META HISTÓRICA (ESTO DEBE IR ANTES DE "const kpis") ---
+    const startDateObj = new Date(start || report.start_date)
+    const endDateObj = new Date(end || report.end_date)
+
+    // Declaramos la variable UNA sola vez aquí arriba
+    let calculatedGoal = 0
+
+    // A. Traer todo el historial de metas del cliente
+    const [goalHistory] = await pool.query('SELECT goal, valid_from FROM client_goals WHERE client_id = ? ORDER BY valid_from ASC', [clientId])
+
+    if (goalHistory.length > 0) {
+      const startD = new Date(startDateObj)
+      const endD = new Date(endDateObj)
+
+      // Iteramos día por día para sumar la "cuota diaria" correspondiente
+      for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        let activeGoal = 0
+        const currentCheckDate = d.getTime()
+
+        // Buscamos la última meta válida para esta fecha
+        for (let i = goalHistory.length - 1; i >= 0; i--) {
+          const goalDate = new Date(goalHistory[i].valid_from).getTime()
+          if (goalDate <= currentCheckDate) {
+            activeGoal = goalHistory[i].goal
+            break
+          }
+        }
+
+        if (activeGoal > 0) {
+          // Sumar proporción diaria
+          const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+          calculatedGoal += activeGoal / daysInMonth
+        }
+      }
+    } else {
+      // Fallback: Si no hay historial en la tabla nueva, intentamos leer de la tabla vieja 'clients'
+      const [clientData] = await pool.query('SELECT monthly_goal FROM clients WHERE id = ?', [clientId])
+      const baseGoal = clientData[0]?.monthly_goal || 0
+
+      if (baseGoal > 0) {
+        const diffTime = Math.abs(endDateObj - startDateObj)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
+        const durationInMonths = diffDays / 30.44
+        calculatedGoal = Math.round(baseGoal * durationInMonths)
+      }
+    }
+
+    // Redondear el resultado final
+    calculatedGoal = Math.round(calculatedGoal)
+
+    // --- 4. AHORA SÍ DEFINIMOS LOS KPIS (LA VARIABLE YA EXISTE) ---
     const kpis = {
       total_impacts: news.length,
+      monthly_goal: calculatedGoal, // ✅ Ahora sí funciona
       total_reach: news.reduce((sum, item) => sum + item.reach, 0),
       total_ave: news.reduce((sum, item) => sum + Number(item.ave_value), 0),
       tier1_count: news.filter(n => n.tier === 'Tier 1').length,
@@ -51,23 +103,14 @@ exports.getReportData = async (req, res) => {
       negative: news.filter(n => n.sentiment === 'Negativo').length,
     }
 
-    // --- LÓGICA DE GRÁFICA ---
-    // 1. DETERMINAR GRANULARIDAD
-    const startDateObj = new Date(start || report.start_date)
-    const endDateObj = new Date(end || report.end_date)
+    // --- 5. LÓGICA DE GRÁFICA ---
     const diffTime = Math.abs(endDateObj - startDateObj)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
 
     let dateFormatSQL
-
-    // LÓGICA MEJORADA:
-    // Si la diferencia es mayor a 45 días, agrupamos por MES.
-    // EXCEPCIÓN: Si estamos viendo un rango personalizado corto, forzamos DÍA.
     if (diffDays > 45) {
-      console.log(`Modo: MENSUAL (%Y-%m) - Rango: ${diffDays} días`)
       dateFormatSQL = '%Y-%m'
     } else {
-      console.log(`Modo: DIARIO (%Y-%m-%d) - Rango: ${diffDays} días`)
       dateFormatSQL = '%Y-%m-%d'
     }
 
@@ -87,8 +130,6 @@ exports.getReportData = async (req, res) => {
 
     const [trendResults] = await pool.query(trendQuery, trendParams)
 
-    console.log('Datos Gráfica encontrados:', trendResults.length)
-
     const trendData = {
       labels: trendResults.map(item => item.date_label),
       values: trendResults.map(item => item.count),
@@ -106,7 +147,6 @@ exports.getReportData = async (req, res) => {
     res.status(500).json({ message: 'Error en servidor', error })
   }
 }
-
 // Actualizar Datos Cualitativos (CORREGIDO)
 exports.updateReportMeta = async (req, res) => {
   try {
